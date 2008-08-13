@@ -5,7 +5,7 @@ ports = GPhoto2::Camera.ports
 if ports.empty?
     # ports array can be empty if there is only one camera plugged in
     # or there are no cameras connected to the computer
-    # asumming there is one
+    # assuming there is one
     c = GPhoto2::Camera.new()
     c.configs.each do |cfg|
         puts cfg + " value is: " + c[cfg].to_s

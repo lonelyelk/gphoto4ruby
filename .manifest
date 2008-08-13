@@ -1,0 +1,9 @@
+LICENSE
+README
+docs/COPIYNG.LESSER
+docs/COPYING
+docs/gphoto4ruby_api_ru.txt
+example.rb
+ext/extconf.rb
+ext/gphoto4ruby.c
+ext/gphoto4ruby.h

@@ -27,13 +27,6 @@
 #include <ruby.h>
 #include "gphoto4ruby.h"
 
-
-static VALUE rb_mGPhoto2;
-static VALUE rb_cGPhoto2Camera;
-static VALUE rb_cGPhoto2Exception;
-static VALUE rb_cGPhoto2ConfigurationError;
-static VALUE rb_cGPhoto2ProgrammerError;
-
 static void rb_raise_gp_result(int retval) {
     rb_raise(rb_cGPhoto2Exception, "LibGPhoto2 function returned: %s", gp_result_as_string(retval));
 }
@@ -457,3 +450,4 @@ void Init_gphoto4ruby() {
     rb_define_method(rb_cGPhoto2Camera, "[]=", camera_set_value, 2);
     rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, 0);
 }
+
