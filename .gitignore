@@ -1,0 +1,6 @@
+*.gem
+ext/*.o
+ext/*.so
+ext/Makefile
+ext/mkmf.log
+ext/test.rb
