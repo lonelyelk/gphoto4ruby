@@ -201,7 +201,9 @@ static void camera_free(GPhoto2Camera *c) {
     int retval;
     retval = gp_camera_exit(c->camera, c->context);
     retval = gp_widget_free(c->config);
+    retval = gp_list_free(c->list);
     retval = gp_camera_free(c->camera);
+    free(c->virtFolder);
     free(c->context);
     free(c);
 }
@@ -210,12 +212,18 @@ static VALUE camera_allocate(VALUE klass) {
     int retval;
     GPhoto2Camera *c;
     c = (GPhoto2Camera*) malloc(sizeof(GPhoto2Camera));
+    c->virtFolder = (char*) malloc(sizeof(char)*100);
+    strcpy(c->virtFolder, "/");//store_00010001/DCIM/100NCD80/");
+//    c->path = "/store_00010001";
     c->context = gp_context_new();
     retval = gp_camera_new(&(c->camera));
     if (retval == GP_OK) {
-        retval = gp_camera_get_config(c->camera, &(c->config), c->context);
+        retval = gp_list_new(&(c->list));
         if (retval == GP_OK) {
-            return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
+            retval = gp_camera_get_config(c->camera, &(c->config), c->context);
+            if (retval == GP_OK) {
+                return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
+            }
         }
     }
     rb_raise_gp_result(retval);
@@ -297,9 +305,10 @@ static VALUE camera_capture(VALUE self) {
 
     Data_Get_Struct(self, GPhoto2Camera, c);
 
-    retval = gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, &(c->filepath), c->context);
+    retval = gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, &(c->path), c->context);
     if (retval == GP_OK) {
-//        printf("captured: %s/%s\n", c->filepath.folder, c->filepath.name);
+        strcpy(c->virtFolder, c->path.folder);
+        printf("captured: %s/%s\n", c->path.folder, c->path.name);
         return self;
     } else {
         rb_raise_gp_result(retval);
@@ -436,6 +445,112 @@ static VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
     return Qnil;
 }
 
+static VALUE camera_folder(VALUE self) {
+    GPhoto2Camera *c;
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    return rb_str_new2(c->virtFolder);
+}
+
+static VALUE camera_subfolders(VALUE self) {
+    int retval, i, count;
+    const char *name;
+    GPhoto2Camera *c;
+    VALUE arr;
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    retval = gp_camera_folder_list_folders(c->camera, c->virtFolder, c->list, c->context);
+    if (retval == GP_OK) {
+        count = gp_list_count(c->list);
+        if (count < 0) {
+            rb_raise_gp_result(retval);
+            return Qnil;
+        }
+        arr = rb_ary_new();
+        for (i = 0; i < count; i++) {
+            retval = gp_list_get_name(c->list, i, &name);
+            if (retval == GP_OK) {
+                rb_ary_push(arr, rb_str_new2(name));
+            }
+        }
+        return arr;
+    }
+    rb_raise_gp_result(retval);
+    return Qnil;
+}
+
+static VALUE camera_files(VALUE self) {
+    int retval, i, count;
+    const char *name;
+    GPhoto2Camera *c;
+    VALUE arr;
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    retval = gp_filesystem_reset(c->camera->fs);
+    if (retval == GP_OK) {
+        retval = gp_camera_folder_list_files(c->camera, c->virtFolder, c->list, c->context);
+        if (retval == GP_OK) {
+            count = gp_list_count(c->list);
+            if (count < 0) {
+                rb_raise_gp_result(retval);
+                return Qnil;
+            }
+            arr = rb_ary_new();
+            for (i = 0; i < count; i++) {
+                retval = gp_list_get_name(c->list, i, &name);
+                if (retval == GP_OK) {
+                    rb_ary_push(arr, rb_str_new2(name));
+                }
+            }
+            return arr;
+        }
+    }
+    rb_raise_gp_result(retval);
+    return Qnil;
+}
+
+static VALUE camera_folder_up(VALUE self) {
+    char *pch;
+    GPhoto2Camera *c;
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    pch = strrchr(c->virtFolder, '/');
+    if ((pch - c->virtFolder) == 0) {
+        c->virtFolder[1] = '\0';
+    } else {
+        c->virtFolder[pch - c->virtFolder] = '\0';
+    }
+    
+    return self;
+}
+
+static VALUE camera_folder_down(VALUE self, VALUE folder) {
+    Check_Type(folder, T_STRING);
+    int retval;
+    const char *name;
+    int index;
+    GPhoto2Camera *c;
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    name = RSTRING(folder)->ptr;
+    retval = gp_camera_folder_list_folders(c->camera, c->virtFolder, c->list, c->context);
+    if (retval == GP_OK) {
+        retval = gp_list_find_by_name(c->list, &index, name);
+        if (retval == GP_OK) {
+            if (strlen(c->virtFolder) > 1) {
+                strcat(c->virtFolder, "/");
+            }
+            strcat(c->virtFolder, name);
+        }
+    }
+    return self;
+}
+
 void Init_gphoto4ruby() {
     rb_mGPhoto2 = rb_define_module("GPhoto2");
     rb_cGPhoto2Camera = rb_define_class_under(rb_mGPhoto2, "Camera", rb_cObject);
@@ -449,5 +564,10 @@ void Init_gphoto4ruby() {
     rb_define_method(rb_cGPhoto2Camera, "[]", camera_get_value, -1);
     rb_define_method(rb_cGPhoto2Camera, "[]=", camera_set_value, 2);
     rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, 0);
+    rb_define_method(rb_cGPhoto2Camera, "folder", camera_folder, 0);
+    rb_define_method(rb_cGPhoto2Camera, "subfolders", camera_subfolders, 0);
+    rb_define_method(rb_cGPhoto2Camera, "files", camera_files, 0);
+    rb_define_method(rb_cGPhoto2Camera, "folder_up", camera_folder_up, 0);
+    rb_define_method(rb_cGPhoto2Camera, "folder_down", camera_folder_down, 1);
 }
 

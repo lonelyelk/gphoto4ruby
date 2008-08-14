@@ -1,0 +1,10 @@
+== master
+
+* Added folders browsing
+* Added folders and files listing
+
+== 0.1.0
+
+* Initial import
+* Camera configuration (limited to radio-button and float type of items)
+* Camera capture image command

@@ -24,8 +24,11 @@ typedef struct {
     Camera *camera;
     CameraWidget *config;
     CameraWidget *childConfig;
-    CameraFilePath filepath;
+    CameraList *list;
+    CameraFilePath path;
     GPContext *context;
+    
+    char *virtFolder;
 } GPhoto2Camera;
 
 static VALUE rb_mGPhoto2;
@@ -57,3 +60,8 @@ static VALUE camera_get_configs(VALUE self);
 static VALUE camera_get_value(int argc, VALUE *argv, VALUE self);
 static VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal);
 
+static VALUE camera_folder(VALUE self);
+static VALUE camera_subfolders(VALUE self);
+static VALUE camera_files(VALUE self);
+static VALUE camera_folder_up(VALUE self);
+static VALUE camera_folder_down(VALUE self, VALUE folder);

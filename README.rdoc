@@ -1,0 +1,38 @@
+= GPhoto4Ruby
+
+== Summary
+
+GPhoto4Ruby is Ruby wrapping around libgphoto2 C library
+(See <http://gphoto.org> for more information on libgphoto2 and gphoto2).
+It maps a digital camera to Ruby object and allows operating it by
+calling object methods.
+
+  c = GPhoto2::Camera.new
+  c[:exptime] = "0.010" # you can list values with c[:exptime, :all]
+  c["f-number"] = "f/4.5"
+  c.capture
+
+== Installation
+
+* First of all you'll need the original gphoto2 C library installed. For
+  installation instructions goto <http://gphoto.org>.
+
+* Apparently this GitHub will not build this Gem due to "$SAFE problem".
+  So you can download it from <http://rubyforge.org/projects/gphoto4ruby/>
+  and install it with:
+
+  sudo gem install gphoto4ruby-<version>.gem
+  
+* Plug your digital camera through usb and run:
+
+  ruby example.rb
+
+== Usage
+
+See example.rb
+
+== Contact
+
+neq4 company <http://neq4.com>
+Sergey Kruk <sergey.kruk@gmail.com>
+

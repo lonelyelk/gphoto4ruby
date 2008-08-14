@@ -12,8 +12,11 @@ if ports.empty?
         puts "values available are: " + c[cfg, :all].inspect
     end
     c.capture
+    puts "files on camera: " + c.files.inspect
+    puts "some folder stuff: " + c.folder_up.subfolders.inspect
 else
     puts ports.length.to_s + "cameras connected"
+    cams = []
     ports.each do |port|
         c = GPhoto2::Camera.new(port)
         puts "camera in port: " + port
@@ -22,5 +25,16 @@ else
             puts "values available are: " + c[cfg, :all].inspect
         end
         c.capture
+        puts "files on camera: " + c.files.inspect
+        puts "some folder stuff: " + c.folder_up.subfolders.inspect
+        cams.push c
+    end
+    # to capture image with all attached cameras at a time use:
+    cams.each_index do |index|
+        if index < cams.length - 1
+            fork {cams[index].capture; exit!}
+        else
+            cams[index].capture
+        end
     end
 end
