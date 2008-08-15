@@ -25,7 +25,7 @@ calling object methods.
   
 * Plug your digital camera through usb and run:
 
-  ruby example.rb
+    ruby example.rb
 
 == Usage
 

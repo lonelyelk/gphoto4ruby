@@ -1,5 +1,7 @@
 == master
 
+* Added rdoc comments
+* Added saving captured image to specified folder
 * Added folders browsing
 * Added folders and files listing
 

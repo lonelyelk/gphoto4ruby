@@ -1,6 +1,7 @@
 CHANGELOG.rdoc
 LICENSE
 README.rdoc
+Rakefile
 docs/COPIYNG.LESSER
 docs/COPYING
 docs/gphoto4ruby_api_ru.txt

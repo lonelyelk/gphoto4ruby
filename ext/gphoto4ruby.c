@@ -22,6 +22,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <string.h>
 #include <gphoto2/gphoto2.h>
 #include <ruby.h>
@@ -202,6 +203,7 @@ static void camera_free(GPhoto2Camera *c) {
     retval = gp_camera_exit(c->camera, c->context);
     retval = gp_widget_free(c->config);
     retval = gp_list_free(c->list);
+    retval = gp_file_free(c->file);
     retval = gp_camera_free(c->camera);
     free(c->virtFolder);
     free(c->context);
@@ -222,7 +224,10 @@ static VALUE camera_allocate(VALUE klass) {
         if (retval == GP_OK) {
             retval = gp_camera_get_config(c->camera, &(c->config), c->context);
             if (retval == GP_OK) {
-                return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
+                retval = gp_file_new(&(c->file));
+                if (retval == GP_OK) {
+                    return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
+                }
             }
         }
     }
@@ -230,6 +235,19 @@ static VALUE camera_allocate(VALUE klass) {
     return Qnil;
 }
 
+/*
+ * call-seq:
+ *   GPhoto2::Camera.new(port=nil)
+ *
+ * Returns camera object. Camera should be connected at a time constructor
+ * is called. If there is more than one camera connected through usb ports,
+ * port parameter can be passed to specify which camera is addressed with
+ * object.
+ *
+ *   GPhoto2::Camera.new
+ *   GPhoto2::Capera.new(GPhoto2::Camera.ports[0])
+ *
+ */
 static VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
     switch (argc) {
         case 0:
@@ -271,6 +289,19 @@ static VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
     }
 }
 
+/*
+ * call-seq:
+ *   GPhoto2::Camera.ports          =>      array
+ *
+ * Returns an array of usb port paths with cameras. If only one camera
+ * is connected, returned array is empty.
+ *
+ *   # with one camera connected
+ *   GPhoto2::Camera.ports          #=>     []
+ *   # with two cameras connected
+ *   GPhoto2::Camera.ports          #=>     ["usb:005,004", "usb:005,006"]
+ *
+ */
 static VALUE camera_class_ports(VALUE klass) {
     int retval, i, portsTotal;
     GPPortInfoList *portInfoList;
@@ -299,6 +330,16 @@ static VALUE camera_class_ports(VALUE klass) {
     return Qnil;
 }
 
+/*
+ * call-seq:
+ *   capture                        =>      camera
+ *
+ * Sends command to camera to capture image with current configuration
+ *
+ *   c = GPhoto2::Camera.new
+ *   c.capture
+ *
+ */
 static VALUE camera_capture(VALUE self) {
     int retval;
     GPhoto2Camera *c;
@@ -316,6 +357,89 @@ static VALUE camera_capture(VALUE self) {
     }
 }
 
+/*
+ * call-seq:
+ *   capture_save(folder="")        =>      camera
+ *
+ * Sends command to camera to capture image with current configuration
+ * and saves file into specified folder with the same filename as on
+ * camera file system.
+ *
+ *   c = GPhoto2::Camera.new
+ *   c.capture_save "/home"
+ *
+ */
+static VALUE camera_capture_save(int argc, VALUE *argv, VALUE self) {
+    int retval;
+    GPhoto2Camera *c;
+    const char *fData;
+    char *fPath;
+    char fName[100];
+    unsigned long int fSize;
+    int fd;
+    
+    if (argc > 1) {
+        rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
+        return Qnil;
+    }
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+
+    retval = gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, &(c->path), c->context);
+    if (retval == GP_OK) {
+        strcpy(c->virtFolder, c->path.folder);
+        if (retval == GP_OK) {
+            retval = gp_camera_file_get(c->camera, c->path.folder, c->path.name, GP_FILE_TYPE_NORMAL, c->file, c->context);
+            if (retval == GP_OK) {
+                retval = gp_file_get_data_and_size(c->file, &fData, &fSize);
+                if (retval == GP_OK) {
+                    if (argc == 1)  {
+                        fPath = RSTRING(argv[0])->ptr;
+                        if (strlen(fPath) == 0) {
+                            strcpy(fName, c->path.name);
+                        } else if (fPath[strlen(fPath)] == '/') {
+                            strcpy(fName, fPath);
+                            strcat(fName, c->path.name);
+                        } else {
+                            strcpy(fName, fPath);
+                            strcat(fName, "/");
+                            strcat(fName, c->path.name);
+                        }
+                    } else {
+                        strcpy(fName, c->path.name);
+                    }
+                    fd = open(fName, O_CREAT | O_WRONLY, 0644);
+                    write(fd, fData, fSize);
+                    close(fd);
+                    return self;
+                }
+            }
+        }
+    }
+    rb_raise_gp_result(retval);
+    return Qnil;
+}
+
+/*
+ * call-seq:
+ *   configs                        =>      array
+ *
+ * Returns an array of adjustable camera configurations.
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c.configs                      #=>     ["capturetarget", "imgquality",
+ *                                           "imgsize", "whitebalance",
+ *                                           "f-number", "focallength",
+ *                                           "focusmode", "iso",
+ *                                           "exposurebiascompensation",
+ *                                           "exptime", "expprogram",
+ *                                           "capturemode", "focusmetermode",
+ *                                           "exposuremetermode", "flashmode",
+ *                                           "burstnumber", "accessmode",
+ *                                           "channel", "encryption"]
+ *
+ */
 static VALUE camera_get_configs(VALUE self) {
     GPhoto2Camera *c;
     VALUE arr = rb_ary_new();
@@ -327,6 +451,22 @@ static VALUE camera_get_configs(VALUE self) {
     return arr;
 }
 
+/*
+ * call-seq:
+ *   cam[cfg]                       =>      float or string
+ *   cam[cfg, :all]                 =>      array
+ *
+ * Returns current value of specified camera configuration. Configuration name
+ * (cfg) can be string or symbol and must be in configs method returned array.
+ * When called with directive <b>:all</b> returns an array of allowed values
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c["f-number"]                  #=>     "f/4.5"
+ *   c[:focallength]                #=>     10.5
+ *   c[:focusmode, :all]            #=>     ["Manual", "AF-S", "AF-C", "AF-A"]
+ *
+ */
 static VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
     int retval;
     const char *name;
@@ -400,6 +540,18 @@ static VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
     return Qnil;
 }
 
+/*
+ * call-seq:
+ *   cam[cfg] = value               =>      float or string
+ *
+ * Sets specified camera configuration to specified value if value is allowed.
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c["f-number"] = "f/4.5"        #=>     "f/4.5"
+ *   c[:focallength] = 10.5         #=>     10.5
+ *
+ */
 static VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
     int retval;
     const char *name;
@@ -445,6 +597,20 @@ static VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
     return Qnil;
 }
 
+/*
+ * call-seq:
+ *   folder                         =>      string
+ *
+ * Returns current camera path. When image is captured, folder changes to
+ * path where files are saved on camera.
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c.folder                       #=>     "/"
+ *   c.capture
+ *   c.folder                       #=>     "/store_00010001/DCIM/100NCD80"
+ *
+ */
 static VALUE camera_folder(VALUE self) {
     GPhoto2Camera *c;
     
@@ -453,6 +619,18 @@ static VALUE camera_folder(VALUE self) {
     return rb_str_new2(c->virtFolder);
 }
 
+/*
+ * call-seq:
+ *   subfolders                     =>      array
+ *
+ * Returns an array of subfolder names in current camera path.
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c.folder                       #=>     "/"
+ *   c.subfolders                   #=>     ["special", "store_00010001"]
+ *
+ */
 static VALUE camera_subfolders(VALUE self) {
     int retval, i, count;
     const char *name;
@@ -481,6 +659,21 @@ static VALUE camera_subfolders(VALUE self) {
     return Qnil;
 }
 
+/*
+ * call-seq:
+ *   files                          =>      array
+ *
+ * Returns an array of file names in current camera path.
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c.folder                       #=>     "/"
+ *   c.files                        #=>     []
+ *   c.capture
+ *   c.files                        #=>     ["DSC_0001.JPG", "DSC_0002.JPG",
+ *                                           "DSC_0003.JPG", ... ]
+ *
+ */
 static VALUE camera_files(VALUE self) {
     int retval, i, count;
     const char *name;
@@ -512,6 +705,22 @@ static VALUE camera_files(VALUE self) {
     return Qnil;
 }
 
+/*
+ * call-seq:
+ *   folder_up                      =>      camera
+ *
+ * Changes current camera path one level up.
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c.folder                       #=>     "/"
+ *   c.capture
+ *   c.folder                       #=>     "/store_00010001/DCIM/100NCD80"
+ *   c.folder_up
+ *   c.folder                       #=>     "/store_00010001/DCIM"
+ *   c.folder_up.folder_up          #=>     "/"
+ *
+ */
 static VALUE camera_folder_up(VALUE self) {
     char *pch;
     GPhoto2Camera *c;
@@ -528,6 +737,22 @@ static VALUE camera_folder_up(VALUE self) {
     return self;
 }
 
+/*
+ * call-seq:
+ *   folder_down(name)              =>      camera
+ *
+ * Changes current camera path one level down into subfolder with
+ * specified name.
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c.folder                       #=>     "/"
+ *   c.folder_down "store_00010001"
+ *   c.folder                       #=>     "/store_00010001"
+ *   c.folder_down("DCIM").folder_down("100NCD80")
+ *   c.folder                       #=>     "/store_00010001/DCIM/100NCD80"
+ *
+ */
 static VALUE camera_folder_down(VALUE self, VALUE folder) {
     Check_Type(folder, T_STRING);
     int retval;
@@ -552,10 +777,29 @@ static VALUE camera_folder_down(VALUE self, VALUE folder) {
 }
 
 void Init_gphoto4ruby() {
+    /*
+     * Module contains camera class definition and some exceptions
+     */
     rb_mGPhoto2 = rb_define_module("GPhoto2");
+    /*
+     * GPhoto2::Camera object is a Ruby wrapping aroung gphoto2 C library.
+     */
     rb_cGPhoto2Camera = rb_define_class_under(rb_mGPhoto2, "Camera", rb_cObject);
+    /*
+     * GPhoto2::Exception is raised when libgphoto2 functions from C core
+     * return any error code
+     */
     rb_cGPhoto2Exception = rb_define_class_under(rb_mGPhoto2, "Exception", rb_eStandardError);
+    /*
+     * GPhoto2::ConfigurationError is raised when trying to set configuration
+     * values that are not allowed or trying to access properties that are not
+     * supported
+     */
     rb_cGPhoto2ConfigurationError = rb_define_class_under(rb_mGPhoto2, "ConfigurationError", rb_eStandardError);
+    /*
+     * GPhoto2::ProgrammerError is never raised. :) Only when program gets
+     * where it could never get.
+     */
     rb_cGPhoto2ProgrammerError = rb_define_class_under(rb_mGPhoto2, "ProgrammerError", rb_eStandardError);
     rb_define_alloc_func(rb_cGPhoto2Camera, camera_allocate);
     rb_define_module_function(rb_cGPhoto2Camera, "ports", camera_class_ports, 0);
@@ -564,6 +808,7 @@ void Init_gphoto4ruby() {
     rb_define_method(rb_cGPhoto2Camera, "[]", camera_get_value, -1);
     rb_define_method(rb_cGPhoto2Camera, "[]=", camera_set_value, 2);
     rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, 0);
+    rb_define_method(rb_cGPhoto2Camera, "capture_save", camera_capture_save, -1);
     rb_define_method(rb_cGPhoto2Camera, "folder", camera_folder, 0);
     rb_define_method(rb_cGPhoto2Camera, "subfolders", camera_subfolders, 0);
     rb_define_method(rb_cGPhoto2Camera, "files", camera_files, 0);
