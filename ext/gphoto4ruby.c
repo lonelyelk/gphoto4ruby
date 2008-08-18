@@ -215,8 +215,7 @@ static VALUE camera_allocate(VALUE klass) {
     GPhoto2Camera *c;
     c = (GPhoto2Camera*) malloc(sizeof(GPhoto2Camera));
     c->virtFolder = (char*) malloc(sizeof(char)*100);
-    strcpy(c->virtFolder, "/");//store_00010001/DCIM/100NCD80/");
-//    c->path = "/store_00010001";
+    strcpy(c->virtFolder, "/");
     c->context = gp_context_new();
     retval = gp_camera_new(&(c->camera));
     if (retval == GP_OK) {
@@ -243,6 +242,8 @@ static VALUE camera_allocate(VALUE klass) {
  * is called. If there is more than one camera connected through usb ports,
  * port parameter can be passed to specify which camera is addressed with
  * object.
+ *
+ * Examples:
  *
  *   GPhoto2::Camera.new
  *   GPhoto2::Capera.new(GPhoto2::Camera.ports[0])
@@ -296,6 +297,8 @@ static VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
  * Returns an array of usb port paths with cameras. If only one camera
  * is connected, returned array is empty.
  *
+ * Examples:
+ *
  *   # with one camera connected
  *   GPhoto2::Camera.ports          #=>     []
  *   # with two cameras connected
@@ -336,6 +339,8 @@ static VALUE camera_class_ports(VALUE klass) {
  *
  * Sends command to camera to capture image with current configuration
  *
+ * Examples:
+ *
  *   c = GPhoto2::Camera.new
  *   c.capture
  *
@@ -359,60 +364,131 @@ static VALUE camera_capture(VALUE self) {
 
 /*
  * call-seq:
- *   capture_save(folder="")        =>      camera
+ *   save(options={})               =>      camera
  *
- * Sends command to camera to capture image with current configuration
- * and saves file into specified folder with the same filename as on
- * camera file system.
+ * Downloads file from camera to hard drive.
+ * Available options are:
+ * * :name - Name of the file to download from camera. File is expected
+ *   to be found in current path. If this option is not specified, last
+ *   captured image is downloaded.
+ * * :new_name - New file name to be used when saving file on hard drive.
+ *   If this option is not specified, camera file system filename is used.
+ * * :to_folder - Folder path on hard drive to save downloaded image to.
+ * * :type - Type of file to download from camera. Available types are 
+ *   <b>:normal</b> (default) and <b>:preview</b>
+ *
+ * Examples:
  *
  *   c = GPhoto2::Camera.new
- *   c.capture_save "/home"
+ *   c.capture.save :type => :preview,              => Downloads preview of
+ *               :new_name => "PREVIEW.JPG"            captured image
+ *   c.save :name => "DSC_0144.JPG",                => Downloads specified file
+ *               :to_folder => "/home/user",           to /home/user/xyz.gf.JPG
+ *               :new_name => "xyz.gf",
  *
  */
-static VALUE camera_capture_save(int argc, VALUE *argv, VALUE self) {
-    int retval;
+static VALUE camera_save(int argc, VALUE *argv, VALUE self) {
+    int retval, i;
+    int newName = -1;
+    CameraFileType fileType = GP_FILE_TYPE_NORMAL;
     GPhoto2Camera *c;
-    const char *fData;
-    char *fPath;
-    char fName[100];
+    const char *fData, *key, *val;
+    char *fPath, *newNameStr, *pchNew, *pchSrc;
+    char fName[100], cFileName[100], cFolderName[100];
     unsigned long int fSize;
     int fd;
-    
-    if (argc > 1) {
-        rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
-        return Qnil;
-    }
+    VALUE arr, hVal;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    strcpy(fName, "");
+    strcpy(cFileName, c->path.name);
+    strcpy(cFolderName, c->path.folder);
 
-    retval = gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, &(c->path), c->context);
-    if (retval == GP_OK) {
-        strcpy(c->virtFolder, c->path.folder);
-        if (retval == GP_OK) {
-            retval = gp_camera_file_get(c->camera, c->path.folder, c->path.name, GP_FILE_TYPE_NORMAL, c->file, c->context);
-            if (retval == GP_OK) {
-                retval = gp_file_get_data_and_size(c->file, &fData, &fSize);
-                if (retval == GP_OK) {
-                    if (argc == 1)  {
-                        fPath = RSTRING(argv[0])->ptr;
-                        if (strlen(fPath) == 0) {
-                            strcpy(fName, c->path.name);
-                        } else if (fPath[strlen(fPath)] == '/') {
+    switch(argc) {
+        case 0:
+            break;
+        case 1:
+            Check_Type(argv[0], T_HASH);
+            arr = rb_funcall(argv[0], rb_intern("keys"), 0);
+            for (i = 0; i < RARRAY(arr)->len; i++) {
+                switch(TYPE(RARRAY(arr)->ptr[i])) {
+                    case T_STRING:
+                        key = RSTRING(RARRAY(arr)->ptr[i])->ptr;
+                        break;
+                    case T_SYMBOL:
+                        key = rb_id2name(rb_to_id(RARRAY(arr)->ptr[i]));
+                        break;
+                    default:
+                        rb_raise(rb_eTypeError, "Not valid key type");
+                        return Qnil;
+                }
+                if (strcmp(key, "to_folder") == 0) {
+                    fPath = RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr;
+                    if (strlen(fPath) > 0) {
+                        if (fPath[strlen(fPath)] == '/') {
                             strcpy(fName, fPath);
-                            strcat(fName, c->path.name);
                         } else {
                             strcpy(fName, fPath);
                             strcat(fName, "/");
-                            strcat(fName, c->path.name);
                         }
-                    } else {
-                        strcpy(fName, c->path.name);
+                    } 
+                } else if (strcmp(key, "new_name") == 0) {
+                    newNameStr = RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr;
+                    if (strlen(newNameStr) > 0) {
+                        newName = 0;
                     }
-                    fd = open(fName, O_CREAT | O_WRONLY, 0644);
-                    write(fd, fData, fSize);
-                    close(fd);
-                    return self;
+                } else if (strcmp(key, "type") == 0) {
+                    hVal = rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]);
+                    switch(TYPE(hVal)) {
+                        case T_STRING:
+                            val = RSTRING(hVal)->ptr;
+                            break;
+                        case T_SYMBOL:
+                            val = rb_id2name(rb_to_id(hVal));
+                            break;
+                        default:
+                            rb_raise(rb_eTypeError, "Not valid value type");
+                            return Qnil;
+                    }
+                    if (strcmp(val, "normal") == 0) {
+                        fileType = GP_FILE_TYPE_NORMAL;
+                    } else if (strcmp(val, "preview") == 0) {
+                        fileType = GP_FILE_TYPE_PREVIEW;
+                    }
+                } else if (strcmp(key, "name") == 0) {
+                    strcpy(cFolderName, c->virtFolder);
+                    strcpy(cFileName, RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr);
                 }
+            }
+            break;
+        default:
+            rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
+            return Qnil;
+    }
+    
+    retval = gp_filesystem_reset(c->camera->fs);
+    if (retval == GP_OK) {
+        retval = gp_camera_file_get(c->camera, cFolderName, cFileName, fileType, c->file, c->context);
+        if (retval == GP_OK) {
+            retval = gp_file_get_data_and_size(c->file, &fData, &fSize);
+            if (retval == GP_OK) {
+                if (newName == 0)  {
+                    strcat(fName, newNameStr);
+                    pchNew = strrchr(newNameStr, '.');
+                    pchSrc = strrchr(cFileName, '.');
+                    if (pchNew == NULL) {
+                        strcat(fName, pchSrc);
+                    } else if (strcmp(pchNew, pchSrc) != 0) {
+                        strcat(fName, pchSrc);
+                    }
+                } else {
+                    strcat(fName, cFileName);
+                }
+                fd = open(fName, O_CREAT | O_WRONLY, 0644);
+                write(fd, fData, fSize);
+                close(fd);
+                return self;
             }
         }
     }
@@ -425,6 +501,8 @@ static VALUE camera_capture_save(int argc, VALUE *argv, VALUE self) {
  *   configs                        =>      array
  *
  * Returns an array of adjustable camera configurations.
+ *
+ * Examples:
  *
  *   c = GPhoto2::Camera.new
  *   # with Nikon DSC D80
@@ -459,6 +537,8 @@ static VALUE camera_get_configs(VALUE self) {
  * Returns current value of specified camera configuration. Configuration name
  * (cfg) can be string or symbol and must be in configs method returned array.
  * When called with directive <b>:all</b> returns an array of allowed values
+ *
+ * Examples:
  *
  *   c = GPhoto2::Camera.new
  *   # with Nikon DSC D80
@@ -546,6 +626,8 @@ static VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
  *
  * Sets specified camera configuration to specified value if value is allowed.
  *
+ * Examples:
+ *
  *   c = GPhoto2::Camera.new
  *   # with Nikon DSC D80
  *   c["f-number"] = "f/4.5"        #=>     "f/4.5"
@@ -604,6 +686,8 @@ static VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
  * Returns current camera path. When image is captured, folder changes to
  * path where files are saved on camera.
  *
+ * Examples:
+ *
  *   c = GPhoto2::Camera.new
  *   # with Nikon DSC D80
  *   c.folder                       #=>     "/"
@@ -624,6 +708,8 @@ static VALUE camera_folder(VALUE self) {
  *   subfolders                     =>      array
  *
  * Returns an array of subfolder names in current camera path.
+ *
+ * Examples:
  *
  *   c = GPhoto2::Camera.new
  *   # with Nikon DSC D80
@@ -664,6 +750,8 @@ static VALUE camera_subfolders(VALUE self) {
  *   files                          =>      array
  *
  * Returns an array of file names in current camera path.
+ *
+ * Examples:
  *
  *   c = GPhoto2::Camera.new
  *   # with Nikon DSC D80
@@ -711,6 +799,8 @@ static VALUE camera_files(VALUE self) {
  *
  * Changes current camera path one level up.
  *
+ * Examples:
+ *
  *   c = GPhoto2::Camera.new
  *   # with Nikon DSC D80
  *   c.folder                       #=>     "/"
@@ -743,6 +833,8 @@ static VALUE camera_folder_up(VALUE self) {
  *
  * Changes current camera path one level down into subfolder with
  * specified name.
+ *
+ * Examples:
  *
  *   c = GPhoto2::Camera.new
  *   # with Nikon DSC D80
@@ -808,7 +900,7 @@ void Init_gphoto4ruby() {
     rb_define_method(rb_cGPhoto2Camera, "[]", camera_get_value, -1);
     rb_define_method(rb_cGPhoto2Camera, "[]=", camera_set_value, 2);
     rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, 0);
-    rb_define_method(rb_cGPhoto2Camera, "capture_save", camera_capture_save, -1);
+    rb_define_method(rb_cGPhoto2Camera, "save", camera_save, -1);
     rb_define_method(rb_cGPhoto2Camera, "folder", camera_folder, 0);
     rb_define_method(rb_cGPhoto2Camera, "subfolders", camera_subfolders, 0);
     rb_define_method(rb_cGPhoto2Camera, "files", camera_files, 0);

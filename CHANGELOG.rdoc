@@ -1,3 +1,9 @@
+== 0.1.2
+
+* Had to change version number to make gem build
+* Save function can accept options. See rdoc
+* Gemspec made safer
+
 == 0.1.1
 
 * Added rdoc comments

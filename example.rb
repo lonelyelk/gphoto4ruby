@@ -14,6 +14,7 @@ if ports.empty?
     c.capture
     puts "files on camera: " + c.files.inspect
     puts "some folder stuff: " + c.folder_up.subfolders.inspect
+    c.capture.save :type => :preview, :new_name => "PREVIEW.JPG"
 else
     puts ports.length.to_s + "cameras connected"
     cams = []

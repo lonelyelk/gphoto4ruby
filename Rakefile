@@ -10,7 +10,7 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
             include("ext/gphoto4ruby.c")
     rdoc.main = "README.rdoc"
     rdoc.title = "GPhoto4Ruby documentation"
-    rdoc.rdoc_dir = "docs"
+    rdoc.rdoc_dir = "rdoc"
     rdoc.options << "--charset=UTF-8"
     rdoc.options << "--webcvs=http://github.com/lonelyelk/gphoto4ruby/tree/master"
 end

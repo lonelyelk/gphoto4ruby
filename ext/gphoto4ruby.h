@@ -56,7 +56,11 @@ static VALUE camera_allocate(VALUE klass);
 
 static VALUE camera_initialize(int argc, VALUE *argv, VALUE self);
 static VALUE camera_class_ports(VALUE klass);
+
 static VALUE camera_capture(VALUE self);
+
+static VALUE camera_save(int argc, VALUE *argv, VALUE self);
+
 static VALUE camera_get_configs(VALUE self);
 static VALUE camera_get_value(int argc, VALUE *argv, VALUE self);
 static VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal);
