@@ -17,6 +17,6 @@ Gem::Specification.new do |s|
                     "README.rdoc", "LICENSE", "CHANGELOG.rdoc",
                     "docs/COPYING", "docs/COPYING.LESSER"]
     
-    s.files = %w(CHANGELOG.rdoc LICENSE README.rdoc Rakefile docs docs/COPIYNG.LESSER docs/COPYING example.rb ext ext/extconf.rb ext/gphoto4ruby.c ext/gphoto4ruby.h)
+    s.files = %w(CHANGELOG.rdoc LICENSE README.rdoc Rakefile docs docs/COPYING docs/COPYING.LESSER example.rb ext ext/extconf.rb ext/gphoto4ruby.c ext/gphoto4ruby.h)
     s.extensions = ["ext/extconf.rb"]
 end

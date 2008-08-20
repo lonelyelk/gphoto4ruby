@@ -2,8 +2,8 @@ CHANGELOG.rdoc
 LICENSE
 README.rdoc
 Rakefile
-docs/COPIYNG.LESSER
 docs/COPYING
+docs/COPYING.LESSER
 example.rb
 ext/extconf.rb
 ext/gphoto4ruby.c

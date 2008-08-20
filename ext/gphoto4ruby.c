@@ -368,7 +368,7 @@ static VALUE camera_capture(VALUE self) {
  *
  * Downloads file from camera to hard drive.
  * Available options are:
- * * :name - Name of the file to download from camera. File is expected
+ * * :file - Name of the file to download from camera. File is expected
  *   to be found in current path. If this option is not specified, last
  *   captured image is downloaded.
  * * :new_name - New file name to be used when saving file on hard drive.
@@ -382,7 +382,7 @@ static VALUE camera_capture(VALUE self) {
  *   c = GPhoto2::Camera.new
  *   c.capture.save :type => :preview,              => Downloads preview of
  *               :new_name => "PREVIEW.JPG"            captured image
- *   c.save :name => "DSC_0144.JPG",                => Downloads specified file
+ *   c.save :file => "DSC_0144.JPG",                => Downloads specified file
  *               :to_folder => "/home/user",           to /home/user/xyz.gf.JPG
  *               :new_name => "xyz.gf",
  *
@@ -456,7 +456,7 @@ static VALUE camera_save(int argc, VALUE *argv, VALUE self) {
                     } else if (strcmp(val, "preview") == 0) {
                         fileType = GP_FILE_TYPE_PREVIEW;
                     }
-                } else if (strcmp(key, "name") == 0) {
+                } else if (strcmp(key, "file") == 0) {
                     strcpy(cFolderName, c->virtFolder);
                     strcpy(cFileName, RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr);
                 }
@@ -490,6 +490,75 @@ static VALUE camera_save(int argc, VALUE *argv, VALUE self) {
                 close(fd);
                 return self;
             }
+        }
+    }
+    rb_raise_gp_result(retval);
+    return Qnil;
+}
+
+/*
+ * call-seq:
+ *   delete(options={})             =>      camera
+ *
+ * Deletes file from camera.
+ * Available options are:
+ * * :file - Name of the file to delete from camera. File is expected
+ *   to be found in current path. If this option is not specified, last
+ *   captured image is deleted.
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   c.capture.save.delete
+ *   c.delete :file => "DSC_0144.JPG"
+ *
+ */
+static VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
+    int retval, i;
+    GPhoto2Camera *c;
+    const char *key;
+    char cFileName[100], cFolderName[100];
+    VALUE arr;
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    strcpy(cFileName, c->path.name);
+    strcpy(cFolderName, c->path.folder);
+
+    switch(argc) {
+        case 0:
+            break;
+        case 1:
+            Check_Type(argv[0], T_HASH);
+            arr = rb_funcall(argv[0], rb_intern("keys"), 0);
+            for (i = 0; i < RARRAY(arr)->len; i++) {
+                switch(TYPE(RARRAY(arr)->ptr[i])) {
+                    case T_STRING:
+                        key = RSTRING(RARRAY(arr)->ptr[i])->ptr;
+                        break;
+                    case T_SYMBOL:
+                        key = rb_id2name(rb_to_id(RARRAY(arr)->ptr[i]));
+                        break;
+                    default:
+                        rb_raise(rb_eTypeError, "Not valid key type");
+                        return Qnil;
+                }
+                if (strcmp(key, "file") == 0) {
+                    strcpy(cFolderName, c->virtFolder);
+                    strcpy(cFileName, RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr);
+                }
+            }
+            break;
+        default:
+            rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
+            return Qnil;
+    }
+    
+    retval = gp_filesystem_reset(c->camera->fs);
+    if (retval == GP_OK) {
+        retval = gp_camera_file_delete(c->camera, cFolderName, cFileName, c->context);
+        if (retval == GP_OK) {
+            return self;
         }
     }
     rb_raise_gp_result(retval);
@@ -901,6 +970,7 @@ void Init_gphoto4ruby() {
     rb_define_method(rb_cGPhoto2Camera, "[]=", camera_set_value, 2);
     rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, 0);
     rb_define_method(rb_cGPhoto2Camera, "save", camera_save, -1);
+    rb_define_method(rb_cGPhoto2Camera, "delete", camera_delete, -1);
     rb_define_method(rb_cGPhoto2Camera, "folder", camera_folder, 0);
     rb_define_method(rb_cGPhoto2Camera, "subfolders", camera_subfolders, 0);
     rb_define_method(rb_cGPhoto2Camera, "files", camera_files, 0);
