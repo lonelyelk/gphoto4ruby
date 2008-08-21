@@ -15,24 +15,36 @@ calling object methods.
 == Installation
 
 * First of all you'll need the original gphoto2 C library installed. For
-  installation instructions goto http://gphoto.org. On Ubuntu 8.04 it is:
+  installation instructions goto http://gphoto.org.
+
+* On Ubuntu 8.04 it is:
 
     sudo apt-get install gphoto2
     
-* To install GPhoto4Ruby gem type:
+* On Mac OS X gphoto2 is installed through DarwinPorts
+    
+* You can install GPhoto4Ruby gem from GitHub or from RubyForge. Use one of
+  the following lines depending on your preferences:
 
     sudo gem install lonelyelk-gphoto4ruby --source http://gems.github.com
+    
+  <b>or</b>
 
-* Or you can download it from http://rubyforge.org/projects/gphoto4ruby/
-  and install with:
-
-    sudo gem install gphoto4ruby-version.gem
+    sudo gem install gphoto4ruby
   
-* Plug your digital camera through usb, locate example.rb file and run:
+* Connect your digital camera through usb, locate example.rb file and run:
 
     ruby example.rb
+    
+* <b>NOTE!<b> On Mac OS X there is a process you need to kill before using
+  gphoto2. You can find more information on this at http://gphoto.org
 
 == Usage
+
+After installation of this gem rdocs are generated for you. Ruby file
+<b>example.rb</b> is installed along with this gem. All examples are tested
+on Kubuntu 8.04 and Mac OS X 10.4.11 with digital camera Nikon DSC D80
+connected through usb in PTP mode.
 
 <b>example.rb:</b>
 
