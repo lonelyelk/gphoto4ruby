@@ -11,9 +11,9 @@ if ports.empty?
 
     # list available configuration items with current values and lists
     # of allowed values
-    c.configs.each do |cfg|
-        puts cfg + " value is: " + c[cfg].to_s
-        puts "values available are: " + c[cfg, :all].inspect
+    c.config.each_key do |cfg_key|
+        puts cfg_key + " value is: " + c.config[cfg_key].to_s # or c[cfg_key].to_s
+        puts "values available are: " + c[cfg_key, :all].inspect
     end
 
     # capture image
@@ -38,9 +38,9 @@ else
     ports.each do |port|
         c = GPhoto2::Camera.new(port)
         puts "camera in port: " + port
-        c.configs.each do |cfg|
-            puts cfg + " value is: " + c[cfg].to_s
-            puts "values available are: " + c[cfg, :all].inspect
+        c.config.each_key do |cfg_key|
+            puts cfg_key + " value is: " + c[cfg_key].to_s
+            puts "values available are: " + c[cfg_key, :all].inspect
         end
         cams.push c
     end

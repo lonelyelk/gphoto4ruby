@@ -1,6 +1,12 @@
-== master
+== 0.1.3
 
 * Added "delete file from camera" function
+* Directive :type and class constant to determine config type
+* "Configs" is now "config" (method name change)
+* Configs are now cached in instance variable
+* Added config_merge method
+* ProgrammerError removed
+* Removed allowed values check. Values just dont change instead of raising Errors
 
 == 0.1.2
 

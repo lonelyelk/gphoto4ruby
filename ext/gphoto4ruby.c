@@ -32,10 +32,6 @@ static void rb_raise_gp_result(int retval) {
     rb_raise(rb_cGPhoto2Exception, "LibGPhoto2 function returned: %s", gp_result_as_string(retval));
 }
 
-static void rb_raise_programmer_error(const char* fName) {
-    rb_raise(rb_cGPhoto2ProgrammerError, "Program was not supposed to get here. Function: %s", fName);
-}
-
 static int gp_result_check(int retval) {
     if (retval < GP_OK) {
         rb_raise_gp_result(retval);
@@ -62,7 +58,7 @@ static VALUE listRadio(CameraWidget *cc) {
     }
     return arr;}
 
-static VALUE setRadio(GPhoto2Camera *c, VALUE newVal) {
+static VALUE setRadio(VALUE self, GPhoto2Camera *c, VALUE newVal, int save) {
     int i, choicesTotal;
     const char *val;
 
@@ -70,7 +66,9 @@ static VALUE setRadio(GPhoto2Camera *c, VALUE newVal) {
     val = RSTRING(newVal)->ptr;
 
     gp_result_check(gp_widget_set_value(c->childConfig, val));
-//                retval = gp_camera_set_config(c->camera, c->config, c->context);
+    if (save) {
+        saveConfigs(self, c);
+    }
     return newVal;
 }
 
@@ -96,18 +94,44 @@ static VALUE listRange(CameraWidget *cc) {
     return arr;
 }
 
-static VALUE setRange(GPhoto2Camera *c, VALUE newNum) {
+static VALUE setRange(VALUE self, GPhoto2Camera *c, VALUE newNum, int save) {
     float val;
 
     Check_Type(newNum, T_FLOAT);
     val = NUM2DBL(newNum);
 
     gp_result_check(gp_widget_set_value(c->childConfig, &val));
-//                    retval = gp_camera_set_config(c->camera, c->config, c->context);
+    if (save) {
+        saveConfigs(self, c);
+    }
     return newNum;
 }
 
-static void populateWithConfigs(CameraWidget *cc, VALUE arr) {
+static void saveConfigs(VALUE self, GPhoto2Camera *c) {
+    VALUE cfgs, cfg_changed, name;
+    CameraWidgetType widgettype;
+    
+    gp_result_check(gp_camera_set_config(c->camera, c->config, c->context));
+    gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
+    cfg_changed = rb_iv_get(self, "@configs_changed");
+    cfgs = rb_iv_get(self, "@configuration");
+    name = rb_ary_shift(cfg_changed);
+    while (TYPE(name) != T_NIL) {
+        gp_result_check(gp_widget_get_child_by_name(c->config, RSTRING(name)->ptr, &(c->childConfig)));
+        gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
+        switch (widgettype) {
+            case GP_WIDGET_RADIO:
+                rb_hash_aset(cfgs, name, getRadio(c->childConfig));
+                break;
+            case GP_WIDGET_RANGE:
+                rb_hash_aset(cfgs, name, getRange(c->childConfig));
+                break;
+        }
+        name = rb_ary_shift(cfg_changed);
+    }
+}
+
+static void populateWithConfigs(CameraWidget *cc, VALUE hash) {
     int i, childrenTotal;
     const char *name;
     CameraWidget *child;
@@ -116,16 +140,19 @@ static void populateWithConfigs(CameraWidget *cc, VALUE arr) {
     gp_result_check(gp_widget_get_type(cc, &widgettype));
     switch (widgettype) {
         case GP_WIDGET_RADIO:
+            gp_result_check(gp_widget_get_name(cc, &name));
+            rb_hash_aset(hash, rb_str_new2(name), getRadio(cc));
+            break;
         case GP_WIDGET_RANGE:
             gp_result_check(gp_widget_get_name(cc, &name));
-            rb_ary_push(arr, rb_str_new2(name));
+            rb_hash_aset(hash, rb_str_new2(name), getRange(cc));
             break;
         case GP_WIDGET_WINDOW:
         case GP_WIDGET_SECTION:
             childrenTotal = gp_result_check(gp_widget_count_children(cc));
             for (i = 0; i < childrenTotal; i ++) {
                 gp_result_check(gp_widget_get_child(cc, i, &child));
-                populateWithConfigs(child, arr);
+                populateWithConfigs(child, hash);
             }
             break;
     }
@@ -174,29 +201,37 @@ static VALUE camera_allocate(VALUE klass) {
  *
  */
 static VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
+    GPhoto2Camera *c;
+    VALUE cfgs;
+
+    Data_Get_Struct(self, GPhoto2Camera, c);
+
     switch (argc) {
         case 0:
-            return self;
             break;
         case 1:
             Check_Type(argv[0], T_STRING);
             int portIndex;
             GPPortInfoList *portInfoList;
             GPPortInfo p;
-            GPhoto2Camera *c;
-
-            Data_Get_Struct(self, GPhoto2Camera, c);
             
             gp_result_check(gp_port_info_list_new(&portInfoList));
             gp_result_check(gp_port_info_list_load(portInfoList));
             portIndex = gp_result_check(gp_port_info_list_lookup_path(portInfoList, RSTRING(argv[0])->ptr));
             gp_result_check(gp_port_info_list_get_info(portInfoList, portIndex, &p));
             gp_result_check(gp_camera_set_port_info(c->camera, p));
-            return self;
+            break;
         default:
             rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
             return Qnil;
     }
+    
+    cfgs = rb_hash_new();
+    populateWithConfigs(c->config, cfgs);
+    rb_iv_set(self, "@configuration", cfgs);
+    rb_iv_set(self, "@configs_changed", rb_ary_new());
+    
+    return self;
 }
 
 /*
@@ -236,20 +271,29 @@ static VALUE camera_class_ports(VALUE klass) {
 
 /*
  * call-seq:
- *   capture                        =>      camera
+ *   capture(config={})             =>      camera
  *
- * Sends command to camera to capture image with current configuration
+ * Sends command to camera to capture image with current or provided
+ * configuration. Provided configuration is kept after capture.
  *
  * Examples:
  *
  *   c = GPhoto2::Camera.new
  *   c.capture
+ *   c.capture "exptime" => "0.010", "iso" => "400"
  *
  */
-static VALUE camera_capture(VALUE self) {
+static VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
     GPhoto2Camera *c;
 
     Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    if (argc == 1) {
+        camera_config_merge(self, argv[0]);
+    } else if (argc != 0) {
+        rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
+        return Qnil;
+    }
 
     gp_result_check(gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, &(c->path), c->context));
     strcpy(c->virtFolder, c->path.folder);
@@ -448,15 +492,15 @@ static VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
 
 /*
  * call-seq:
- *   configs                        =>      array
+ *   config                         =>      hash
  *
- * Returns an array of adjustable camera configurations.
+ * Returns cached hash of adjustable camera configuration with their values.
  *
  * Examples:
  *
  *   c = GPhoto2::Camera.new
  *   # with Nikon DSC D80
- *   c.configs                      #=>     ["capturetarget", "imgquality",
+ *   c.config.keys                  #=>     ["capturetarget", "imgquality",
  *                                           "imgsize", "whitebalance",
  *                                           "f-number", "focallength",
  *                                           "focusmode", "iso",
@@ -468,25 +512,82 @@ static VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
  *                                           "channel", "encryption"]
  *
  */
-static VALUE camera_get_configs(VALUE self) {
+static VALUE camera_get_config(VALUE self) {
+    return rb_iv_get(self, "@configuration");
+}
+
+/*
+ * call-seq:
+ *   config_merge(hash)             =>      hash
+ *
+ * Adjusts camera configuration with given values.
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c.config_merge "f-number" => "f/4", "exptime" => "0.010", "iso" => "200"
+ *
+ */
+static VALUE camera_config_merge(VALUE self, VALUE hash) {
+    Check_Type(hash, T_HASH);
+
+    int i;
+    const char *key;
     GPhoto2Camera *c;
-    VALUE arr = rb_ary_new();
+    CameraWidgetType widgettype;
+    VALUE arr, cfgs, cfg_changed;
 
     Data_Get_Struct(self, GPhoto2Camera, c);
 
-    populateWithConfigs(c->config, arr);
-    
-    return arr;
+    arr = rb_funcall(hash, rb_intern("keys"), 0);
+    cfgs = rb_iv_get(self, "@configuration");
+    cfg_changed = rb_iv_get(self, "@configs_changed");
+    for (i = 0; i < RARRAY(arr)->len; i++) {
+        switch(TYPE(RARRAY(arr)->ptr[i])) {
+            case T_STRING:
+                key = RSTRING(RARRAY(arr)->ptr[i])->ptr;
+                break;
+            case T_SYMBOL:
+                key = rb_id2name(rb_to_id(RARRAY(arr)->ptr[i]));
+                break;
+            default:
+                rb_raise(rb_eTypeError, "Not valid key type");
+                return Qnil;
+        }
+        if (TYPE(rb_funcall(cfgs, rb_intern("has_key?"), 1, rb_str_new2(key))) == T_TRUE) {
+            gp_result_check(gp_widget_get_child_by_name(c->config, key, &(c->childConfig)));
+            gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
+            switch (widgettype) {
+                case GP_WIDGET_RADIO:
+                    rb_ary_push(cfg_changed, rb_str_new2(key));
+                    setRadio(self, c, rb_hash_aref(hash, RARRAY(arr)->ptr[i]), 0);
+                    break;
+                case GP_WIDGET_RANGE:
+                    rb_ary_push(cfg_changed, rb_str_new2(key));
+                    setRange(self, c, rb_hash_aref(hash, RARRAY(arr)->ptr[i]), 0);
+                    break;
+            }
+        }
+    }
+    saveConfigs(self, c);
+    return cfgs;
 }
 
 /*
  * call-seq:
  *   cam[cfg]                       =>      float or string
  *   cam[cfg, :all]                 =>      array
+ *   cam[cfg, :type]                =>      fixnum
  *
  * Returns current value of specified camera configuration. Configuration name
  * (cfg) can be string or symbol and must be in configs method returned array.
- * When called with directive <b>:all</b> returns an array of allowed values
+ * Configuration is cached in @configuration instance variable.
+ * 
+ * Possible directives:
+ * * <b>:no_cache</b> doesn't use cached configuration value
+ * * <b>:all</b> returns an array of allowed values;
+ * * <b>:type</b> returns one of available CONFIG_TYPE constats
  *
  * Examples:
  *
@@ -495,13 +596,15 @@ static VALUE camera_get_configs(VALUE self) {
  *   c["f-number"]                  #=>     "f/4.5"
  *   c[:focallength]                #=>     10.5
  *   c[:focusmode, :all]            #=>     ["Manual", "AF-S", "AF-C", "AF-A"]
+ *   c[:exptime, :type] == GPhoto2::Camera::CONFIG_TYPE_RADIO
+ *                                  #=>     true
  *
  */
 static VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
     const char *name;
     GPhoto2Camera *c;
     CameraWidgetType widgettype;
-    VALUE str, dir;
+    VALUE str, dir, cfgs;
     
     switch (argc) {
         case 1:
@@ -510,6 +613,7 @@ static VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
         case 2:
             str = argv[0];
             dir = argv[1];
+            Check_Type(dir, T_SYMBOL);
             break;
         default:
             rb_raise(rb_eArgError, "Wrong number of arguments (%d for 1 or 2)", argc);
@@ -528,37 +632,43 @@ static VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
             return Qnil;
     }
     
-    Data_Get_Struct(self, GPhoto2Camera, c);
+    if (argc == 1) {
+        return rb_hash_aref(rb_iv_get(self, "@configuration"), rb_str_new2(name));
+    } else {
+        Data_Get_Struct(self, GPhoto2Camera, c);
 
-    gp_result_check(gp_widget_get_child_by_name(c->config, name, &(c->childConfig)));
-    gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
-    switch (widgettype) {
-        case GP_WIDGET_RADIO:
-            if (argc == 1) {
-                return getRadio(c->childConfig);
-            } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
-                return listRadio(c->childConfig);
-            } else {
-                rb_raise(rb_cGPhoto2ConfigurationError, "Second parameter not valid");
+        gp_result_check(gp_widget_get_child_by_name(c->config, name, &(c->childConfig)));
+        gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
+        switch (widgettype) {
+            case GP_WIDGET_RADIO:
+                if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
+                    return getRadio(c->childConfig);
+                } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
+                    return listRadio(c->childConfig);
+                } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
+                    return INT2FIX(GP_WIDGET_RADIO);
+                } else {
+                    rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
+                    return Qnil;
+                }
+                break;
+            case GP_WIDGET_RANGE:
+                if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
+                    return getRange(c->childConfig);
+                } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
+                    return listRange(c->childConfig);
+                } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
+                    return INT2FIX(GP_WIDGET_RANGE);
+                } else {
+                    rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
+                    return Qnil;
+                }
+                break;
+            default:
+                rb_raise(rb_cGPhoto2ConfigurationError, "Not supported yet");
                 return Qnil;
-            }
-            break;
-        case GP_WIDGET_RANGE:
-            if (argc == 1) {
-                return getRange(c->childConfig);
-            } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
-                return listRange(c->childConfig);
-            } else {
-                rb_raise(rb_cGPhoto2ConfigurationError, "Second parameter not valid");
-                return Qnil;
-            }
-            break;
-        default:
-            rb_raise(rb_cGPhoto2ConfigurationError, "Not supported yet");
-            return Qnil;
+        }
     }
-    rb_raise_programmer_error("camera_get_value");
-    return Qnil;
 }
 
 /*
@@ -579,6 +689,7 @@ static VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
     const char *name;
     GPhoto2Camera *c;
     CameraWidgetType widgettype;
+    VALUE cfg_changed;
     
     switch (TYPE(str)) {
         case T_STRING:
@@ -598,17 +709,19 @@ static VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
     gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
     switch (widgettype) {
         case GP_WIDGET_RADIO:
-            return setRadio(c, newVal);
+            cfg_changed = rb_iv_get(self, "@configs_changed");
+            rb_ary_push(cfg_changed, rb_str_new2(name));
+            return setRadio(self, c, newVal, 1);
             break;
         case GP_WIDGET_RANGE:
-            return setRange(c, newVal);
+            cfg_changed = rb_iv_get(self, "@configs_changed");
+            rb_ary_push(cfg_changed, rb_str_new2(name));
+            return setRange(self, c, newVal, 1);
             break;
         default:
             rb_raise(rb_cGPhoto2ConfigurationError, "Cannot access this setting");
             return Qnil;
     }
-    rb_raise_programmer_error("camera_set_value");
-    return Qnil;
 }
 
 /*
@@ -794,18 +907,18 @@ void Init_gphoto4ruby() {
      * supported
      */
     rb_cGPhoto2ConfigurationError = rb_define_class_under(rb_mGPhoto2, "ConfigurationError", rb_eStandardError);
-    /*
-     * GPhoto2::ProgrammerError is never raised. :) Only when program gets
-     * where it could never get.
-     */
-    rb_cGPhoto2ProgrammerError = rb_define_class_under(rb_mGPhoto2, "ProgrammerError", rb_eStandardError);
+    
+    rb_define_const(rb_cGPhoto2Camera, "CONFIG_TYPE_RADIO", INT2FIX(GP_WIDGET_RADIO));
+    rb_define_const(rb_cGPhoto2Camera, "CONFIG_TYPE_RANGE", INT2FIX(GP_WIDGET_RANGE));
+    
     rb_define_alloc_func(rb_cGPhoto2Camera, camera_allocate);
     rb_define_module_function(rb_cGPhoto2Camera, "ports", camera_class_ports, 0);
     rb_define_method(rb_cGPhoto2Camera, "initialize", camera_initialize, -1);
-    rb_define_method(rb_cGPhoto2Camera, "configs", camera_get_configs, 0);
+    rb_define_method(rb_cGPhoto2Camera, "config", camera_get_config, 0);
+    rb_define_method(rb_cGPhoto2Camera, "config_merge", camera_config_merge, 1);
     rb_define_method(rb_cGPhoto2Camera, "[]", camera_get_value, -1);
     rb_define_method(rb_cGPhoto2Camera, "[]=", camera_set_value, 2);
-    rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, 0);
+    rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, -1);
     rb_define_method(rb_cGPhoto2Camera, "save", camera_save, -1);
     rb_define_method(rb_cGPhoto2Camera, "delete", camera_delete, -1);
     rb_define_method(rb_cGPhoto2Camera, "folder", camera_folder, 0);

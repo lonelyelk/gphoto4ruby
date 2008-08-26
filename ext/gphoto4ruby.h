@@ -36,17 +36,17 @@ static VALUE rb_mGPhoto2;
 static VALUE rb_cGPhoto2Camera;
 static VALUE rb_cGPhoto2Exception;
 static VALUE rb_cGPhoto2ConfigurationError;
-static VALUE rb_cGPhoto2ProgrammerError;
 
 static void rb_raise_gp_result(int retval);
 static void rb_raise_programmer_error(const char* fName);
 
 static VALUE getRadio(CameraWidget *cc);
 static VALUE listRadio(CameraWidget *cc);
-static VALUE setRadio(GPhoto2Camera *c, VALUE newVal);
+static VALUE setRadio(VALUE self, GPhoto2Camera *c, VALUE newVal, int save);
 static VALUE getRange(CameraWidget *cc);
 static VALUE listRange(CameraWidget *cc);
-static VALUE setRange(GPhoto2Camera *c, VALUE newNum);
+static VALUE setRange(VALUE self, GPhoto2Camera *c, VALUE newNum, int save);
+static void saveConfigs(VALUE self, GPhoto2Camera *c);
 
 static void populateWithConfigs(CameraWidget *cc, VALUE arr);
 
@@ -57,11 +57,13 @@ static VALUE camera_allocate(VALUE klass);
 static VALUE camera_initialize(int argc, VALUE *argv, VALUE self);
 static VALUE camera_class_ports(VALUE klass);
 
-static VALUE camera_capture(VALUE self);
+static VALUE camera_capture(int argc, VALUE *argv, VALUE self);
 
 static VALUE camera_save(int argc, VALUE *argv, VALUE self);
 
-static VALUE camera_get_configs(VALUE self);
+static VALUE camera_get_config(VALUE self);
+static VALUE camera_config_merge(VALUE self, VALUE hash);
+
 static VALUE camera_get_value(int argc, VALUE *argv, VALUE self);
 static VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal);
 
