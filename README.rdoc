@@ -36,7 +36,7 @@ calling object methods.
 
     ruby example.rb
     
-* <b>NOTE!<b> On Mac OS X there is a process you need to kill before using
+* <b>NOTE!</b> On Mac OS X there is a process you need to kill before using
   gphoto2. You can find more information on this at http://gphoto.org
 
 == Usage

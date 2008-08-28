@@ -309,7 +309,9 @@ static VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
  * Available options are:
  * * :file - Name of the file to download from camera. File is expected
  *   to be found in current path. If this option is not specified, last
- *   captured image is downloaded.
+ *   captured image is downloaded. If symbols <b>:first</b> or <b>:last</b>
+ *   are passed, the first or the last file from current camera path is
+ *   downloaded.
  * * :new_name - New file name to be used when saving file on hard drive.
  *   If this option is not specified, camera file system filename is used.
  * * :to_folder - Folder path on hard drive to save downloaded image to.
@@ -327,11 +329,11 @@ static VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
  *
  */
 static VALUE camera_save(int argc, VALUE *argv, VALUE self) {
-    int i;
+    int i, count;
     int newName = -1;
     CameraFileType fileType = GP_FILE_TYPE_NORMAL;
     GPhoto2Camera *c;
-    const char *fData, *key, *val;
+    const char *fData, *key, *val, *name;
     char *fPath, *newNameStr, *pchNew, *pchSrc;
     char fName[100], cFileName[100], cFolderName[100];
     unsigned long int fSize;
@@ -343,6 +345,8 @@ static VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     strcpy(fName, "");
     strcpy(cFileName, c->path.name);
     strcpy(cFolderName, c->path.folder);
+
+    gp_result_check(gp_filesystem_reset(c->camera->fs));
 
     switch(argc) {
         case 0:
@@ -379,25 +383,37 @@ static VALUE camera_save(int argc, VALUE *argv, VALUE self) {
                     }
                 } else if (strcmp(key, "type") == 0) {
                     hVal = rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]);
-                    switch(TYPE(hVal)) {
-                        case T_STRING:
-                            val = RSTRING(hVal)->ptr;
-                            break;
-                        case T_SYMBOL:
-                            val = rb_id2name(rb_to_id(hVal));
-                            break;
-                        default:
-                            rb_raise(rb_eTypeError, "Not valid value type");
-                            return Qnil;
-                    }
+                    Check_Type(hVal, T_SYMBOL);
+                    val = rb_id2name(rb_to_id(hVal));
                     if (strcmp(val, "normal") == 0) {
                         fileType = GP_FILE_TYPE_NORMAL;
                     } else if (strcmp(val, "preview") == 0) {
                         fileType = GP_FILE_TYPE_PREVIEW;
                     }
                 } else if (strcmp(key, "file") == 0) {
-                    strcpy(cFolderName, c->virtFolder);
-                    strcpy(cFileName, RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr);
+                    hVal = rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]);
+                    switch(TYPE(hVal)) {
+                        case T_STRING:
+                            strcpy(cFolderName, c->virtFolder);
+                            strcpy(cFileName, RSTRING(hVal)->ptr);
+                            break;
+                        case T_SYMBOL:
+                            val = rb_id2name(rb_to_id(hVal));
+                            gp_result_check(gp_camera_folder_list_files(c->camera, c->virtFolder, c->list, c->context));
+                            if (strcmp(val, "first") == 0) {
+                                count = 0;
+                            } else if (strcmp(val, "last") == 0) {
+                                count = gp_result_check(gp_list_count(c->list)) - 1;
+                            } else {
+                                count = -1;
+                            }
+                            gp_result_check(gp_list_get_name(c->list, count, &name));
+                            strcpy(cFileName, name);
+                            break;
+                        default:
+                            rb_raise(rb_eTypeError, "Not valid value type");
+                            return Qnil;
+                    }
                 }
             }
             break;
@@ -406,7 +422,6 @@ static VALUE camera_save(int argc, VALUE *argv, VALUE self) {
             return Qnil;
     }
     
-    gp_result_check(gp_filesystem_reset(c->camera->fs));
     gp_result_check(gp_camera_file_get(c->camera, cFolderName, cFileName, fileType, c->file, c->context));
     gp_result_check(gp_file_get_data_and_size(c->file, &fData, &fSize));
     if (newName == 0)  {
