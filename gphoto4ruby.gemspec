@@ -1,9 +1,9 @@
 Gem::Specification.new do |s|
     s.name = "gphoto4ruby"
-    s.summary = "GPhoto4Ruby is Ruby wrapping around libgphoto2 C library"
+    s.summary = "GPhoto4Ruby is Ruby wrapping around gphoto2 C library"
 
-    s.version = "0.1.4"
-    s.date = "2008-08-28"
+    s.version = "0.1.5"
+    s.date = "2008-09-05"
     s.authors = ["heq4 company", "Sergey Kruk"]
     s.email = "sergey.kruk@gmail.com"
     s.homepage = "http://github.com/lonelyelk/gphoto4ruby"

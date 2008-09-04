@@ -1,3 +1,8 @@
+== 0.1.5
+
+* GPhoto2::Camera.ports now returns only ports with cameras and
+  doesn't return empty array if there is one camera connected.
+
 == 0.1.4
 
 * Added option to download first and last files with save method

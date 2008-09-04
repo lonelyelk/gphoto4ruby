@@ -238,34 +238,50 @@ static VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
  * call-seq:
  *   GPhoto2::Camera.ports          =>      array
  *
- * Returns an array of usb port paths with cameras. If only one camera
- * is connected, returned array is empty.
+ * Returns an array of usb port paths with cameras. Port paths are the same
+ * as in <b>gphoto2 --auto-detect</b> output. Assuming that if there are
+ * cameras detected with long port paths, then the one with short port path
+ * is a duplicate of one of the others.
  *
  * Examples:
  *
  *   # with one camera connected
- *   GPhoto2::Camera.ports          #=>     []
+ *   GPhoto2::Camera.ports          #=>     ["usb:"]
  *   # with two cameras connected
  *   GPhoto2::Camera.ports          #=>     ["usb:005,004", "usb:005,006"]
  *
  */
 static VALUE camera_class_ports(VALUE klass) {
-    int i, portsTotal;
+    int i, camsTotal;
+    GPContext *context;
+    CameraAbilitiesList *abilList;
     GPPortInfoList *portInfoList;
-    GPPortInfo p;
+    CameraList *camList;
+    const char *pName = NULL;
+    char *e = "";
     VALUE arr;
-    
+
+    context = gp_context_new();
     gp_result_check(gp_port_info_list_new(&portInfoList));
     gp_result_check(gp_port_info_list_load(portInfoList));
-    portsTotal = gp_result_check(gp_port_info_list_count(portInfoList));
+    gp_result_check(gp_abilities_list_new(&abilList));
+    gp_result_check(gp_abilities_list_load(abilList, context));
+    gp_result_check(gp_list_new(&camList));
+    
+    gp_result_check(gp_abilities_list_detect(abilList, portInfoList, camList, context));
+    
+    camsTotal = gp_result_check(gp_list_count(camList));
     arr = rb_ary_new();
-    for(i = 0; i < portsTotal; i++) {
-        gp_result_check(gp_port_info_list_get_info(portInfoList, i, &p));
-        if ((strlen(p.path) > 4) && (strncmp(p.path, "usb:", 4) == 0)) {
-            rb_ary_push(arr, rb_str_new2(p.path));
+    for(i = 0; i < camsTotal; i++) {
+        gp_result_check(gp_list_get_value(camList, i, &pName));
+        if ((camsTotal == 1) || (strlen(pName) > 4)) {
+            rb_ary_push(arr, rb_str_new2(pName));
         }
     }
+    gp_result_check(gp_list_free(camList));
     gp_result_check(gp_port_info_list_free(portInfoList));
+    gp_result_check(gp_abilities_list_free(abilList));
+    free(context);
     return arr;
 }
 
