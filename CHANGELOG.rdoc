@@ -1,3 +1,10 @@
+== master
+
+* to_s and to_f are applied to config values for radio and range types
+* delete :all
+* TOGGLE (true false) and TEXT configuration type support along with
+  constants
+
 == 0.1.6
 
 * wait method is added along with returned GPhoto2::CameraEvent class.
