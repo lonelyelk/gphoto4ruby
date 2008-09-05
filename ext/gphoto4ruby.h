@@ -32,8 +32,20 @@ typedef struct {
     char *virtFolder;
 } GPhoto2Camera;
 
+typedef struct {
+    CameraEventType type;
+    CameraFilePath *path;
+} GPhoto2CameraEvent;
+
+#define EVENT_UNKNOWN rb_str_new2("unknown")
+#define EVENT_TIMEOUT rb_str_new2("timeout")
+#define EVENT_FILE_ADDED rb_str_new2("file added")
+#define EVENT_FOLDER_ADDED rb_str_new2("folder added")
+
 static VALUE rb_mGPhoto2;
 static VALUE rb_cGPhoto2Camera;
+static VALUE rb_cGPhoto2CameraEvent;
+
 static VALUE rb_cGPhoto2Exception;
 static VALUE rb_cGPhoto2ConfigurationError;
 

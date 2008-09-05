@@ -185,6 +185,13 @@ static VALUE camera_allocate(VALUE klass) {
     return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
 }
 
+static void camera_event_mark(GPhoto2CameraEvent *ce) {
+}
+
+static void camera_event_free(GPhoto2CameraEvent *ce) {
+    free(ce);
+}
+
 /*
  * call-seq:
  *   GPhoto2::Camera.new(port=nil)
@@ -918,9 +925,142 @@ static VALUE camera_folder_down(VALUE self, VALUE folder) {
     return self;
 }
 
+/*
+ * call-seq:
+ *   wait(timeout=2000)             =>      camera event
+ *
+ * Waits for an event from camera for specified amount of milliseconds.
+ * Returns an instance of GPhoto2::CameraEvent. When capturing image manually
+ * with camera connected through USB, images are not saved on memory card
+ * until you call this method. During tests EVENT_TYPE_FILE_ADDED event
+ * was always followed by EVENT_TYPE_UNKNOWN. So in the case of 
+ * EVENT_TYPE_FILE_ADDED or EVENT_TYPE_FOLDER_ADDED, an extra call is made
+ * with 100ms timeout which result is ignored.
+ *
+ * When image is captured manually and then event is caught, camera virtual
+ * folder is changed to the one where files are saved.
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   # capture the image manually
+ *   evt = c.wait
+ *   evt.type                       #=>     "file added"
+ *   evt.type == GPhoto2::CameraEvent::EVENT_TYPE_FILE_ADDED
+ *                                  #=>     true
+ *   evt.file                       #=>     "DSC_0384.JPG"
+ *   
+ *   # do nothing
+ *   c.wait(1).type                 #=>     "timeout"
+ */
+static VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
+    GPhoto2Camera *c;
+    GPhoto2CameraEvent *ce;
+    CameraEventType fakeType;
+    void *evtData, *fakeData;
+    int to;
+    
+    switch (argc) {
+        case 0:
+            to = 2000;
+            break;
+        case 1:
+            to = FIX2INT(rb_funcall(argv[0], rb_intern("to_i"), 0));
+            break;
+        default:
+            rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
+            return Qnil;
+    }
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    ce = (GPhoto2CameraEvent*) malloc(sizeof(GPhoto2CameraEvent));
+    
+    gp_result_check(gp_camera_wait_for_event(c->camera, to, &(ce->type), &evtData, c->context));
+    
+    switch (ce->type) {
+        case GP_EVENT_FILE_ADDED:
+        case GP_EVENT_FOLDER_ADDED:
+            ce->path = (CameraFilePath*)evtData;
+            strcpy(c->virtFolder, ce->path->folder);
+            gp_result_check(gp_camera_wait_for_event(c->camera, 100, &fakeType, &fakeData, c->context));
+            break;
+    }
+    return Data_Wrap_Struct(rb_cGPhoto2CameraEvent, camera_event_mark, camera_event_free, ce);
+}
+
+/*
+ * call-seq:
+ *   type                           =>      string
+ *
+ * Returns type of event. Can be compared to EVENT_TYPE class constants
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   # capture the image manually
+ *   evt = c.wait
+ *   evt.type                       #=>     "file added"
+ *   evt.type == GPhoto2::CameraEvent::EVENT_TYPE_FILE_ADDED
+ *                                  #=>     true
+ *   evt.file                       #=>     "DSC_0384.JPG"
+ *   
+ *   # do nothing
+ *   c.wait(1).type                 #=>     "timeout"
+ */
+static VALUE camera_event_type(VALUE self) {
+    GPhoto2CameraEvent *ce;
+    
+    Data_Get_Struct(self, GPhoto2CameraEvent, ce);
+    
+    switch (ce->type) {
+        case GP_EVENT_FILE_ADDED:
+            return EVENT_FILE_ADDED;
+        case GP_EVENT_FOLDER_ADDED:
+            return EVENT_FOLDER_ADDED;
+        case GP_EVENT_TIMEOUT:
+            return EVENT_TIMEOUT;
+        case GP_EVENT_UNKNOWN:
+            return EVENT_UNKNOWN;
+        default:
+            return Qnil;
+    }
+}
+
+/*
+ * call-seq:
+ *   file                           =>      string or nil
+ *
+ * Returns file name of manually captured image. Only applies to
+ * EVENT_TYPE_FILE_ADDED event.
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   # capture the image manually
+ *   evt = c.wait
+ *   evt.type                       #=>     "file added"
+ *   evt.type == GPhoto2::CameraEvent::EVENT_TYPE_FILE_ADDED
+ *                                  #=>     true
+ *   evt.file                       #=>     "DSC_0384.JPG"
+ *   
+ *   # do nothing
+ *   c.wait(1).type                 #=>     "timeout"
+ */
+static VALUE camera_event_file(VALUE self) {
+    GPhoto2CameraEvent *ce;
+    
+    Data_Get_Struct(self, GPhoto2CameraEvent, ce);
+    
+    if (ce->type == GP_EVENT_FILE_ADDED) {
+        return rb_str_new2(ce->path->name);
+    } else {
+        return Qnil;
+    }
+}
+
 void Init_gphoto4ruby() {
     /*
-     * Module contains camera class definition and some exceptions
+     * Module contains camera class definition and some exceptions.
      */
     rb_mGPhoto2 = rb_define_module("GPhoto2");
     /*
@@ -928,19 +1068,30 @@ void Init_gphoto4ruby() {
      */
     rb_cGPhoto2Camera = rb_define_class_under(rb_mGPhoto2, "Camera", rb_cObject);
     /*
+     * GPhoto2::CameraEvent is returned by camera.wait function. Probable usage
+     * is waiting for camera to save files if you capture them manually and not
+     * with camera.capture method. This class has no constructor.
+     */
+    rb_cGPhoto2CameraEvent = rb_define_class_under(rb_mGPhoto2, "CameraEvent", rb_cObject);
+    /*
      * GPhoto2::Exception is raised when libgphoto2 functions from C core
-     * return any error code
+     * return any error code.
      */
     rb_cGPhoto2Exception = rb_define_class_under(rb_mGPhoto2, "Exception", rb_eStandardError);
     /*
      * GPhoto2::ConfigurationError is raised when trying to set configuration
      * values that are not allowed or trying to access properties that are not
-     * supported
+     * supported.
      */
     rb_cGPhoto2ConfigurationError = rb_define_class_under(rb_mGPhoto2, "ConfigurationError", rb_eStandardError);
     
     rb_define_const(rb_cGPhoto2Camera, "CONFIG_TYPE_RADIO", INT2FIX(GP_WIDGET_RADIO));
     rb_define_const(rb_cGPhoto2Camera, "CONFIG_TYPE_RANGE", INT2FIX(GP_WIDGET_RANGE));
+
+    rb_define_const(rb_cGPhoto2CameraEvent, "EVENT_TYPE_UNKNOWN", EVENT_UNKNOWN);
+    rb_define_const(rb_cGPhoto2CameraEvent, "EVENT_TYPE_TIMEOUT", EVENT_TIMEOUT);
+    rb_define_const(rb_cGPhoto2CameraEvent, "EVENT_TYPE_FILE_ADDED", EVENT_FILE_ADDED);
+    rb_define_const(rb_cGPhoto2CameraEvent, "EVENT_TYPE_FOLDER_ADDED", EVENT_FOLDER_ADDED);
     
     rb_define_alloc_func(rb_cGPhoto2Camera, camera_allocate);
     rb_define_module_function(rb_cGPhoto2Camera, "ports", camera_class_ports, 0);
@@ -957,5 +1108,9 @@ void Init_gphoto4ruby() {
     rb_define_method(rb_cGPhoto2Camera, "files", camera_files, 0);
     rb_define_method(rb_cGPhoto2Camera, "folder_up", camera_folder_up, 0);
     rb_define_method(rb_cGPhoto2Camera, "folder_down", camera_folder_down, 1);
+    rb_define_method(rb_cGPhoto2Camera, "wait", camera_wait, -1);
+
+    rb_define_method(rb_cGPhoto2CameraEvent, "type", camera_event_type, 0);
+    rb_define_method(rb_cGPhoto2CameraEvent, "file", camera_event_file, 0);
 }
 
