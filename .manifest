@@ -6,5 +6,10 @@ docs/COPYING
 docs/COPYING.LESSER
 example.rb
 ext/extconf.rb
+ext/gphoto2camera.c
+ext/gphoto2camera.h
+ext/gphoto2camera_event.c
+ext/gphoto2camera_event.h
+ext/gphoto2camera_utilities.c
+ext/gphoto2camera_utilities.h
 ext/gphoto4ruby.c
-ext/gphoto4ruby.h

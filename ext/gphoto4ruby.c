@@ -68,23 +68,23 @@ void Init_gphoto4ruby() {
     rb_define_const(rb_cGPhoto2CameraEvent, "EVENT_TYPE_FOLDER_ADDED", EVENT_FOLDER_ADDED);
     
     rb_define_alloc_func(rb_cGPhoto2Camera, camera_allocate);
-    rb_define_module_function(rb_cGPhoto2Camera, "ports", camera_class_ports, 0);
-    rb_define_method(rb_cGPhoto2Camera, "initialize", camera_initialize, -1);
-    rb_define_method(rb_cGPhoto2Camera, "config", camera_get_config, 0);
-    rb_define_method(rb_cGPhoto2Camera, "config_merge", camera_config_merge, 1);
-    rb_define_method(rb_cGPhoto2Camera, "[]", camera_get_value, -1);
-    rb_define_method(rb_cGPhoto2Camera, "[]=", camera_set_value, 2);
-    rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, -1);
-    rb_define_method(rb_cGPhoto2Camera, "save", camera_save, -1);
-    rb_define_method(rb_cGPhoto2Camera, "delete", camera_delete, -1);
-    rb_define_method(rb_cGPhoto2Camera, "folder", camera_folder, 0);
-    rb_define_method(rb_cGPhoto2Camera, "subfolders", camera_subfolders, 0);
-    rb_define_method(rb_cGPhoto2Camera, "files", camera_files, 0);
-    rb_define_method(rb_cGPhoto2Camera, "folder_up", camera_folder_up, 0);
-    rb_define_method(rb_cGPhoto2Camera, "folder_down", camera_folder_down, 1);
-    rb_define_method(rb_cGPhoto2Camera, "wait", camera_wait, -1);
+    rb_define_module_function(rb_cGPhoto2Camera, "ports", camera_class_ports, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "initialize", camera_initialize, -1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "config", camera_get_config, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "config_merge", camera_config_merge, 1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "[]", camera_get_value, -1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "[]=", camera_set_value, 2); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, -1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "save", camera_save, -1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "delete", camera_delete, -1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "folder", camera_folder, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "subfolders", camera_subfolders, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "files", camera_files, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "folder_up", camera_folder_up, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "folder_down", camera_folder_down, 1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "wait", camera_wait, -1); /* in gphoto2camera.c */
 
-    rb_define_method(rb_cGPhoto2CameraEvent, "type", camera_event_type, 0);
-    rb_define_method(rb_cGPhoto2CameraEvent, "file", camera_event_file, 0);
+    rb_define_method(rb_cGPhoto2CameraEvent, "type", camera_event_type, 0); /* in gphoto2camera_event.c */
+    rb_define_method(rb_cGPhoto2CameraEvent, "file", camera_event_file, 0); /* in gphoto2camera_event.c */
 }
 

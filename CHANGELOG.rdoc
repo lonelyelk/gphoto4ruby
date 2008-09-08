@@ -1,9 +1,11 @@
-== master
+== 0.2.0
 
 * to_s and to_f are applied to config values for radio and range types
 * delete :all
 * TOGGLE (true false) and TEXT configuration type support along with
   constants
+* allocation safe ports method
+* separated source in several files
 
 == 0.1.6
 
