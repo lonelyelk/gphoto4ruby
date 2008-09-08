@@ -20,4 +20,25 @@
  *
  */
 
+#include <gphoto2/gphoto2.h>
+#include <ruby.h>
 
+#ifndef _INC_CAMERA_EVENT
+#define _INC_CAMERA_EVENT
+
+typedef struct {
+    CameraEventType type;
+    CameraFilePath *path;
+} GPhoto2CameraEvent;
+
+VALUE rb_cGPhoto2CameraEvent;
+
+#define EVENT_UNKNOWN rb_str_new2("unknown")
+#define EVENT_TIMEOUT rb_str_new2("timeout")
+#define EVENT_FILE_ADDED rb_str_new2("file added")
+#define EVENT_FOLDER_ADDED rb_str_new2("folder added")
+
+VALUE camera_event_type(VALUE self);
+VALUE camera_event_file(VALUE self);
+
+#endif /* _INC_CAMERA_EVENT */
