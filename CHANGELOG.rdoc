@@ -1,3 +1,7 @@
+== 0.2.1
+
+* fixed bug where several cameras could not be initialized
+
 == 0.2.0
 
 * to_s and to_f are applied to config values for radio and range types

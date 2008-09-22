@@ -43,6 +43,7 @@ VALUE camera_allocate(VALUE klass) {
     strcpy(c->virtFolder, "/");
     c->context = gp_context_new();
     gp_result_check(gp_camera_new(&(c->camera)));
+    gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
     gp_result_check(gp_list_new(&(c->list)));
     gp_result_check(gp_file_new(&(c->file)));
     return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
@@ -96,7 +97,6 @@ VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
             return Qnil;
     }
     
-    gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
     cfgs = rb_hash_new();
     populateWithConfigs(c->config, cfgs);
     rb_iv_set(self, "@configuration", cfgs);
