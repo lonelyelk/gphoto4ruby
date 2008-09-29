@@ -34,7 +34,7 @@ typedef struct {
     CameraWidget *config;
     CameraWidget *childConfig;
     CameraList *list;
-    CameraFilePath path;
+    CameraFilePath *path;
     CameraFile *file;
     GPContext *context;
     

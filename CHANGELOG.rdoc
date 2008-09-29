@@ -1,3 +1,7 @@
+== 0.2.2
+
+* fixed bug where event "file added" was not changing file path
+
 == 0.2.1
 
 * fixed bug where several cameras could not be initialized

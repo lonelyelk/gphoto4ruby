@@ -197,8 +197,8 @@ VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
         return Qnil;
     }
 
-    gp_result_check(gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, &(c->path), c->context));
-    strcpy(c->virtFolder, c->path.folder);
+    gp_result_check(gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, c->path, c->context));
+    strcpy(c->virtFolder, c->path->folder);
 //        printf("captured: %s/%s\n", c->path.folder, c->path.name);
     return self;
 }
@@ -245,8 +245,8 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     Data_Get_Struct(self, GPhoto2Camera, c);
     
     strcpy(fName, "");
-    strcpy(cFileName, c->path.name);
-    strcpy(cFolderName, c->path.folder);
+    strcpy(cFileName, c->path->name);
+    strcpy(cFolderName, c->path->folder);
 
     gp_result_check(gp_filesystem_reset(c->camera->fs));
 
@@ -372,8 +372,8 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
     
     Data_Get_Struct(self, GPhoto2Camera, c);
     
-    strcpy(cFileName, c->path.name);
-    strcpy(cFolderName, c->path.folder);
+    strcpy(cFileName, c->path->name);
+    strcpy(cFolderName, c->path->folder);
 
     switch(argc) {
         case 0:
@@ -922,8 +922,9 @@ VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
     switch (ce->type) {
         case GP_EVENT_FILE_ADDED:
         case GP_EVENT_FOLDER_ADDED:
-            ce->path = (CameraFilePath*)evtData;
-            strcpy(c->virtFolder, ce->path->folder);
+            c->path = (CameraFilePath*)evtData;
+            ce->path = c->path;
+            strcpy(c->virtFolder, c->path->folder);
             gp_result_check(gp_camera_wait_for_event(c->camera, 100, &fakeType, &fakeData, c->context));
             break;
         default:
