@@ -60,6 +60,7 @@ VALUE camera_subfolders(VALUE self);
 VALUE camera_files(VALUE self);
 VALUE camera_folder_up(VALUE self);
 VALUE camera_folder_down(VALUE self, VALUE folder);
+VALUE camera_create_folder(VALUE self, VALUE folder);
 
 VALUE camera_wait(int argc, VALUE *argv, VALUE self);
 

@@ -82,6 +82,7 @@ void Init_gphoto4ruby() {
     rb_define_method(rb_cGPhoto2Camera, "files", camera_files, 0); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "folder_up", camera_folder_up, 0); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "folder_down", camera_folder_down, 1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "create_folder", camera_create_folder, 1); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "wait", camera_wait, -1); /* in gphoto2camera.c */
 
     rb_define_method(rb_cGPhoto2CameraEvent, "type", camera_event_type, 0); /* in gphoto2camera_event.c */

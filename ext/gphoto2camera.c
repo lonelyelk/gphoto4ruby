@@ -878,6 +878,32 @@ VALUE camera_folder_down(VALUE self, VALUE folder) {
 
 /*
  * call-seq:
+ *   create_folder(name)            =>      camera
+ *
+ * Creates subfolder in current camera path with specified name. If not
+ * supported by camera throws "Unspecified error" GPhoto2::Exception
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   c.create_folder "my_store"
+ *
+ */
+VALUE camera_create_folder(VALUE self, VALUE folder) {
+    Check_Type(folder, T_STRING);
+
+    const char *name;
+    GPhoto2Camera *c;
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    name = RSTRING(folder)->ptr;
+    gp_result_check(gp_camera_folder_make_dir(c->camera, c->virtFolder, name, c->context));
+    return self;
+}
+
+/*
+ * call-seq:
  *   wait(timeout=2000)             =>      camera event
  *
  * Waits for an event from camera for specified amount of milliseconds.
