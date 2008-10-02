@@ -548,20 +548,9 @@ VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
     GPhoto2Camera *c;
     CameraWidgetType widgettype;
     VALUE str, dir;
-    
-    switch (argc) {
-        case 1:
-            str = argv[0];
-            break;
-        case 2:
-            str = argv[0];
-            dir = argv[1];
-            Check_Type(dir, T_SYMBOL);
-            break;
-        default:
-            rb_raise(rb_eArgError, "Wrong number of arguments (%d for 1 or 2)", argc);
-            return Qnil;
-    }
+    VALUE val;
+
+    str = argv[0];
     
     switch (TYPE(str)) {
         case T_STRING:
@@ -574,70 +563,90 @@ VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
             rb_raise(rb_eTypeError, "Not valid parameter type");
             return Qnil;
     }
-    
-    if (argc == 1) {
-        return rb_hash_aref(rb_iv_get(self, "@configuration"), rb_str_new2(name));
-    } else {
-        Data_Get_Struct(self, GPhoto2Camera, c);
 
-        gp_result_check(gp_widget_get_child_by_name(c->config, name, &(c->childConfig)));
-        gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
-        switch (widgettype) {
-            case GP_WIDGET_RADIO:
-                if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
-                    return getRadio(c->childConfig);
-                } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
-                    return listRadio(c->childConfig);
-                } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
-                    return INT2FIX(GP_WIDGET_RADIO);
-                } else {
-                    rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
+    switch (argc) {
+        case 1:
+            return rb_hash_aref(rb_iv_get(self, "@configuration"), rb_str_new2(name));
+            break;
+        case 2:
+            dir = argv[1];
+            Check_Type(dir, T_SYMBOL);
+            Data_Get_Struct(self, GPhoto2Camera, c);
+            
+            if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
+                gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
+            }
+
+            gp_result_check(gp_widget_get_child_by_name(c->config, name, &(c->childConfig)));
+            gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
+            switch (widgettype) {
+                case GP_WIDGET_RADIO:
+                    if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
+                        val = getRadio(c->childConfig);
+                        rb_hash_aset(rb_iv_get(self, "@configuration"), rb_str_new2(name), val);
+                        return val;
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
+                        return listRadio(c->childConfig);
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
+                        return INT2FIX(GP_WIDGET_RADIO);
+                    } else {
+                        rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
+                        return Qnil;
+                    }
+                    break;
+                case GP_WIDGET_TEXT:
+                    if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
+                        val = getText(c->childConfig);
+                        rb_hash_aset(rb_iv_get(self, "@configuration"), rb_str_new2(name), val);
+                        return val;
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
+                        return rb_ary_new();
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
+                        return INT2FIX(GP_WIDGET_TEXT);
+                    } else {
+                        rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
+                        return Qnil;
+                    }
+                    break;
+                case GP_WIDGET_RANGE:
+                    if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
+                        val = getRange(c->childConfig);
+                        rb_hash_aset(rb_iv_get(self, "@configuration"), rb_str_new2(name), val);
+                        return val;
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
+                        return listRange(c->childConfig);
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
+                        return INT2FIX(GP_WIDGET_RANGE);
+                    } else {
+                        rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
+                        return Qnil;
+                    }
+                    break;
+                case GP_WIDGET_TOGGLE:
+                    if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
+                        val = getToggle(c->childConfig);
+                        rb_hash_aset(rb_iv_get(self, "@configuration"), rb_str_new2(name), val);
+                        return val;
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
+                        VALUE arr = rb_ary_new();
+                        rb_ary_push(arr, Qtrue);
+                        rb_ary_push(arr, Qfalse);
+                        return arr;
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
+                        return INT2FIX(GP_WIDGET_TOGGLE);
+                    } else {
+                        rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
+                        return Qnil;
+                    }
+                    break;
+                default:
+                    rb_raise(rb_cGPhoto2ConfigurationError, "Not supported yet");
                     return Qnil;
-                }
-                break;
-            case GP_WIDGET_TEXT:
-                if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
-                    return getText(c->childConfig);
-                } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
-                    return rb_ary_new();
-                } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
-                    return INT2FIX(GP_WIDGET_TEXT);
-                } else {
-                    rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
-                    return Qnil;
-                }
-                break;
-            case GP_WIDGET_RANGE:
-                if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
-                    return getRange(c->childConfig);
-                } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
-                    return listRange(c->childConfig);
-                } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
-                    return INT2FIX(GP_WIDGET_RANGE);
-                } else {
-                    rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
-                    return Qnil;
-                }
-                break;
-            case GP_WIDGET_TOGGLE:
-                if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
-                    return getToggle(c->childConfig);
-                } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
-                    VALUE arr = rb_ary_new();
-                    rb_ary_push(arr, Qtrue);
-                    rb_ary_push(arr, Qfalse);
-                    return arr;
-                } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
-                    return INT2FIX(GP_WIDGET_TOGGLE);
-                } else {
-                    rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
-                    return Qnil;
-                }
-                break;
-            default:
-                rb_raise(rb_cGPhoto2ConfigurationError, "Not supported yet");
-                return Qnil;
-        }
+            }
+            break;
+        default:
+            rb_raise(rb_eArgError, "Wrong number of arguments (%d for 1 or 2)", argc);
+            return Qnil;
     }
 }
 
