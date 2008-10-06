@@ -31,6 +31,7 @@ void camera_free(GPhoto2Camera *c) {
     gp_result_check(gp_list_free(c->list));
     gp_result_check(gp_file_free(c->file));
     gp_result_check(gp_camera_free(c->camera));
+    free(c->path);
     free(c->virtFolder);
     free(c->context);
     free(c);
@@ -39,7 +40,8 @@ void camera_free(GPhoto2Camera *c) {
 VALUE camera_allocate(VALUE klass) {
     GPhoto2Camera *c;
     c = (GPhoto2Camera*) malloc(sizeof(GPhoto2Camera));
-    c->virtFolder = (char*) malloc(sizeof(char)*100);
+    c->virtFolder = (char*) malloc(sizeof(char)*1024);
+    c->path = (CameraFilePath*) malloc(sizeof(CameraFilePath));
     strcpy(c->virtFolder, "/");
     c->context = gp_context_new();
     gp_result_check(gp_camera_new(&(c->camera)));
@@ -198,8 +200,8 @@ VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
     }
 
     gp_result_check(gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, c->path, c->context));
+    printf("captured: %s/%s\n", c->path->folder, c->path->name);
     strcpy(c->virtFolder, c->path->folder);
-//        printf("captured: %s/%s\n", c->path.folder, c->path.name);
     return self;
 }
 

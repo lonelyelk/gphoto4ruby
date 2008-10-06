@@ -1,3 +1,7 @@
+== 0.2.4
+
+* fixed memory allocation bug with CameraFilePath pointer
+
 == 0.2.3
 
 * fixed bug where :no_cache directive had no effect on config caching
