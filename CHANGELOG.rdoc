@@ -1,3 +1,7 @@
+== 0.2.5
+
+* Another bug with memory allocation fixed
+
 == 0.2.4
 
 * fixed memory allocation bug with CameraFilePath pointer

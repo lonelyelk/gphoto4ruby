@@ -51,13 +51,6 @@ VALUE camera_allocate(VALUE klass) {
     return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
 }
 
-void camera_event_mark(GPhoto2CameraEvent *ce) {
-}
-
-void camera_event_free(GPhoto2CameraEvent *ce) {
-    free(ce);
-}
-
 /*
  * call-seq:
  *   GPhoto2::Camera.new(port=nil)
@@ -959,8 +952,9 @@ VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
     switch (ce->type) {
         case GP_EVENT_FILE_ADDED:
         case GP_EVENT_FOLDER_ADDED:
-            c->path = (CameraFilePath*)evtData;
-            ce->path = c->path;
+            ce->path = (CameraFilePath*)evtData;
+            free(c->path);
+            c->path = ce->path;
             strcpy(c->virtFolder, c->path->folder);
             gp_result_check(gp_camera_wait_for_event(c->camera, 100, &fakeType, &fakeData, c->context));
             break;

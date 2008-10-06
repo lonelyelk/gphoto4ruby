@@ -38,6 +38,9 @@ VALUE rb_cGPhoto2CameraEvent;
 #define EVENT_FILE_ADDED rb_str_new2("file added")
 #define EVENT_FOLDER_ADDED rb_str_new2("folder added")
 
+void camera_event_mark(GPhoto2CameraEvent *ce);
+void camera_event_free(GPhoto2CameraEvent *ce);
+
 VALUE camera_event_type(VALUE self);
 VALUE camera_event_file(VALUE self);
 

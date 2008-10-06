@@ -22,6 +22,13 @@
 
 #include "gphoto2camera_event.h"
 
+void camera_event_mark(GPhoto2CameraEvent *ce) {
+}
+
+void camera_event_free(GPhoto2CameraEvent *ce) {
+    free(ce);
+}
+
 /*
  * call-seq:
  *   type                           =>      string
