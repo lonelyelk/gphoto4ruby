@@ -49,7 +49,7 @@ VALUE camera_capture(int argc, VALUE *argv, VALUE self);
 VALUE camera_save(int argc, VALUE *argv, VALUE self);
 VALUE camera_delete(int argc, VALUE *argv, VALUE self);
 
-VALUE camera_get_config(VALUE self);
+VALUE camera_get_config(int argc, VALUE *argv, VALUE self);
 VALUE camera_config_merge(VALUE self, VALUE hash);
 
 VALUE camera_get_value(int argc, VALUE *argv, VALUE self);

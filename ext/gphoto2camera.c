@@ -421,8 +421,10 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
 /*
  * call-seq:
  *   config                         =>      hash
+ *   config :no_cache               =>      hash
  *
  * Returns cached hash of adjustable camera configuration with their values.
+ * Can be run with directive <b>:no_cache</b>
  *
  * Examples:
  *
@@ -440,8 +442,54 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
  *                                           "channel", "encryption"]
  *
  */
-VALUE camera_get_config(VALUE self) {
-    return rb_iv_get(self, "@configuration");
+VALUE camera_get_config(int argc, VALUE *argv, VALUE self) {
+    int i;
+    const char *key;
+    GPhoto2Camera *c;
+    CameraWidgetType widgettype;
+    VALUE arr, cfg;
+
+    cfg = rb_iv_get(self, "@configuration");
+
+    switch (argc) {
+        case 1:
+            Check_Type(argv[0], T_SYMBOL);
+            Data_Get_Struct(self, GPhoto2Camera, c);
+            
+            if (strcmp(rb_id2name(rb_to_id(argv[0])), "no_cache") == 0) {
+                gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
+                arr = rb_funcall(cfg, rb_intern("keys"), 0);
+                for (i = 0; i < RARRAY(arr)->len; i++) {
+                    key = RSTRING(RARRAY(arr)->ptr[i])->ptr;
+                    gp_result_check(gp_widget_get_child_by_name(c->config, key, &(c->childConfig)));
+                    gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
+                    switch (widgettype) {
+                        case GP_WIDGET_RADIO:
+                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getRadio(c->childConfig));
+                            break;
+                        case GP_WIDGET_TEXT:
+                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getText(c->childConfig));
+                            break;
+                        case GP_WIDGET_RANGE:
+                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getRange(c->childConfig));
+                            break;
+                        case GP_WIDGET_TOGGLE:
+                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getToggle(c->childConfig));
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            } else {
+                rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(argv[0])));
+                return Qnil;
+            }
+        case 0:
+            return cfg;
+        default:
+            rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
+            return Qnil;
+    }
 }
 
 /*

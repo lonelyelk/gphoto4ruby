@@ -1,3 +1,7 @@
+== 0.2.6
+
+* Can use config(:no_cache)
+
 == 0.2.5
 
 * Another bug with memory allocation fixed
