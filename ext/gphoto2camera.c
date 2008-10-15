@@ -1006,6 +1006,9 @@ VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
             strcpy(c->virtFolder, c->path->folder);
             gp_result_check(gp_camera_wait_for_event(c->camera, 100, &fakeType, &fakeData, c->context));
             break;
+        case GP_EVENT_UNKNOWN:
+            gp_result_check(gp_camera_wait_for_event(c->camera, 100, &fakeType, &fakeData, c->context));
+            break;
         default:
             break;
     }

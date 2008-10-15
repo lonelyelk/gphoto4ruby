@@ -1,3 +1,10 @@
+== 0.2.7
+
+* In some situations CameraEvent can have 'unknown' type while
+  file was added. Same as ordinary 'file added' event, this event
+  is followed by another 'unknown' type event. Second 'unknown'
+  type event is omited.
+
 == 0.2.6
 
 * Can use config(:no_cache)
