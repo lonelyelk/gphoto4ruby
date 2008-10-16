@@ -1,3 +1,7 @@
+== 0.2.8
+
+* Added reset filesystem in some calls to make it more stable
+
 == 0.2.7
 
 * In some situations CameraEvent can have 'unknown' type while

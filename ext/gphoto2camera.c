@@ -415,6 +415,7 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
     } else {
         gp_result_check(gp_camera_folder_delete_all(c->camera, cFolderName, c->context));
     }
+    gp_result_check(gp_filesystem_reset(c->camera->fs));
     return self;
 }
 
@@ -995,6 +996,7 @@ VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
     Data_Get_Struct(self, GPhoto2Camera, c);
     ce = (GPhoto2CameraEvent*) malloc(sizeof(GPhoto2CameraEvent));
     
+    gp_result_check(gp_filesystem_reset(c->camera->fs));
     gp_result_check(gp_camera_wait_for_event(c->camera, to, &(ce->type), &evtData, c->context));
     
     switch (ce->type) {
