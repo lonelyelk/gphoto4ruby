@@ -22,6 +22,8 @@
 
 #include "gphoto2camera_utilities.h"
 
+VALUE rb_cGPhoto2Exception;
+
 void rb_raise_gp_result(int retval) {
     rb_raise(rb_cGPhoto2Exception, "LibGPhoto2 function returned: %s", gp_result_as_string(retval));
 }

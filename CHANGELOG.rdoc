@@ -1,3 +1,7 @@
+== 0.2.9
+
+* Fixed bug when could not build gem on MacOs
+
 == 0.2.8
 
 * Added reset filesystem in some calls to make it more stable

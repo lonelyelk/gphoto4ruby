@@ -22,6 +22,11 @@
 
 #include "gphoto2camera.h"
 
+VALUE rb_mGPhoto2;
+VALUE rb_cGPhoto2Camera;
+
+VALUE rb_cGPhoto2ConfigurationError;
+
 void camera_mark(GPhoto2Camera *c) {
 }
 

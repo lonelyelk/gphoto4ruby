@@ -32,10 +32,10 @@
 #ifndef _INC_CAMERA
 #define _INC_CAMERA
 
-VALUE rb_mGPhoto2;
-VALUE rb_cGPhoto2Camera;
+extern VALUE rb_mGPhoto2;
+extern VALUE rb_cGPhoto2Camera;
 
-VALUE rb_cGPhoto2ConfigurationError;
+extern VALUE rb_cGPhoto2ConfigurationError;
 
 void camera_mark(GPhoto2Camera *c);
 void camera_free(GPhoto2Camera *c);

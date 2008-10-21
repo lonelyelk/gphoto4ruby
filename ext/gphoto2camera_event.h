@@ -31,7 +31,7 @@ typedef struct {
     CameraFilePath *path;
 } GPhoto2CameraEvent;
 
-VALUE rb_cGPhoto2CameraEvent;
+extern VALUE rb_cGPhoto2CameraEvent;
 
 #define EVENT_UNKNOWN rb_str_new2("unknown")
 #define EVENT_TIMEOUT rb_str_new2("timeout")

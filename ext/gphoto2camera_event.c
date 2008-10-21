@@ -22,6 +22,8 @@
 
 #include "gphoto2camera_event.h"
 
+VALUE rb_cGPhoto2CameraEvent;
+
 void camera_event_mark(GPhoto2CameraEvent *ce) {
 }
 

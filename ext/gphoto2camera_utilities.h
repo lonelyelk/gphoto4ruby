@@ -41,7 +41,7 @@ typedef struct {
     char *virtFolder;
 } GPhoto2Camera;
 
-VALUE rb_cGPhoto2Exception;
+extern VALUE rb_cGPhoto2Exception;
 
 void rb_raise_gp_result(int retval);
 int gp_result_check(int retval);
