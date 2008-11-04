@@ -463,6 +463,7 @@ VALUE camera_get_config(int argc, VALUE *argv, VALUE self) {
             Data_Get_Struct(self, GPhoto2Camera, c);
             
             if (strcmp(rb_id2name(rb_to_id(argv[0])), "no_cache") == 0) {
+                gp_widget_free(c->config);
                 gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
                 arr = rb_funcall(cfg, rb_intern("keys"), 0);
                 for (i = 0; i < RARRAY(arr)->len; i++) {
@@ -623,6 +624,7 @@ VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
             Data_Get_Struct(self, GPhoto2Camera, c);
             
             if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
+                gp_widget_free(c->config);
                 gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
             }
 

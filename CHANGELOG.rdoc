@@ -1,3 +1,7 @@
+== 0.3.0
+
+* Fixed memory leak configuration manipulation
+
 == 0.2.9
 
 * Fixed bug when could not build gem on MacOs

@@ -170,6 +170,7 @@ void saveConfigs(VALUE self, GPhoto2Camera *c) {
     CameraWidgetType widgettype;
     
     gp_result_check(gp_camera_set_config(c->camera, c->config, c->context));
+    gp_widget_free(c->config);
     gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
     cfg_changed = rb_iv_get(self, "@configs_changed");
     cfgs = rb_iv_get(self, "@configuration");
