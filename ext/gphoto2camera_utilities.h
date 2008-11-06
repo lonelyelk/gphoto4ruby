@@ -33,9 +33,6 @@ typedef struct {
     Camera *camera;
     CameraWidget *config;
     CameraWidget *childConfig;
-    CameraList *list;
-    CameraFilePath *path;
-    CameraFile *file;
     GPContext *context;
     
     char *virtFolder;

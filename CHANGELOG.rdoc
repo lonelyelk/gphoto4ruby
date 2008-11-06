@@ -1,3 +1,9 @@
+== 0.3.1
+
+* Added files_count function and parameter allowing to limit files function
+  output
+* Some experimental refactoring to catch memory leaks
+
 == 0.3.0
 
 * Fixed memory leak configuration manipulation

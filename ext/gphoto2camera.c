@@ -27,16 +27,28 @@ VALUE rb_cGPhoto2Camera;
 
 VALUE rb_cGPhoto2ConfigurationError;
 
+#define RESULT_CHECK_LIST(r,l) {        \
+    if (r < 0) {                        \
+        gp_list_free(l);                \
+        rb_raise_gp_result(r);          \
+    }                                   \
+}
+
+#define RESULT_CHECK_LIST_FILE(r,l,f) { \
+    if (r < 0) {                        \
+        gp_list_free(l);                \
+        gp_file_free(f);                \
+        rb_raise_gp_result(r);          \
+    }                                   \
+}
+
 void camera_mark(GPhoto2Camera *c) {
 }
 
 void camera_free(GPhoto2Camera *c) {
     gp_result_check(gp_camera_exit(c->camera, c->context));
     gp_result_check(gp_widget_free(c->config));
-    gp_result_check(gp_list_free(c->list));
-    gp_result_check(gp_file_free(c->file));
     gp_result_check(gp_camera_free(c->camera));
-    free(c->path);
     free(c->virtFolder);
     free(c->context);
     free(c);
@@ -46,13 +58,10 @@ VALUE camera_allocate(VALUE klass) {
     GPhoto2Camera *c;
     c = (GPhoto2Camera*) malloc(sizeof(GPhoto2Camera));
     c->virtFolder = (char*) malloc(sizeof(char)*1024);
-    c->path = (CameraFilePath*) malloc(sizeof(CameraFilePath));
     strcpy(c->virtFolder, "/");
     c->context = gp_context_new();
     gp_result_check(gp_camera_new(&(c->camera)));
     gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
-    gp_result_check(gp_list_new(&(c->list)));
-    gp_result_check(gp_file_new(&(c->file)));
     return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
 }
 
@@ -187,6 +196,7 @@ VALUE camera_class_ports(VALUE klass) {
  */
 VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
     GPhoto2Camera *c;
+    CameraFilePath path;
 
     Data_Get_Struct(self, GPhoto2Camera, c);
     
@@ -197,9 +207,9 @@ VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
         return Qnil;
     }
 
-    gp_result_check(gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, c->path, c->context));
-    printf("captured: %s/%s\n", c->path->folder, c->path->name);
-    strcpy(c->virtFolder, c->path->folder);
+    gp_result_check(gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, &path, c->context));
+//    printf("captured: %s/%s\n", path.folder, path.name);
+    strcpy(c->virtFolder, path.folder);
     return self;
 }
 
@@ -233,28 +243,50 @@ VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
 VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     int i, count;
     int newName = 0;
-    CameraFileType fileType = GP_FILE_TYPE_NORMAL;
-    GPhoto2Camera *c;
     const char *fData, *key, *val, *name;
     char *fPath, *newNameStr, *pchNew, *pchSrc;
     char fName[100], cFileName[100], cFolderName[100];
     unsigned long int fSize;
     int fd;
+
+    GPhoto2Camera *c;
+
+    CameraFileType fileType = GP_FILE_TYPE_NORMAL;
+    CameraList *list;
+    CameraFile *file;
+
     VALUE arr, hVal;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
     
+    gp_list_new(&list);
+    
     strcpy(fName, "");
-    strcpy(cFileName, c->path->name);
-    strcpy(cFolderName, c->path->folder);
+    strcpy(cFolderName, c->virtFolder);
 
-    gp_result_check(gp_filesystem_reset(c->camera->fs));
+    RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
+    RESULT_CHECK_LIST(gp_camera_folder_list_files(c->camera, c->virtFolder, list, c->context), list);
+    count = gp_list_count(list);
+    RESULT_CHECK_LIST(count, list);
+    if (count == 0) {
+        gp_list_free(list);
+        return self; // Nothing to save
+    } else {
+        count -= 1;
+    }
+    RESULT_CHECK_LIST(gp_list_get_name(list, count, &name), list);
+
+    strcpy(cFileName, name);
 
     switch(argc) {
         case 0:
             break;
         case 1:
-            Check_Type(argv[0], T_HASH);
+            if (TYPE(argv[0]) != T_HASH) {
+                gp_list_free(list);
+                rb_raise(rb_eTypeError, "Not valid options type");
+                return Qnil;
+            }
             arr = rb_funcall(argv[0], rb_intern("keys"), 0);
             for (i = 0; i < RARRAY(arr)->len; i++) {
                 switch(TYPE(RARRAY(arr)->ptr[i])) {
@@ -265,6 +297,7 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
                         key = rb_id2name(rb_to_id(RARRAY(arr)->ptr[i]));
                         break;
                     default:
+                        gp_list_free(list);
                         rb_raise(rb_eTypeError, "Not valid key type");
                         return Qnil;
                 }
@@ -287,32 +320,25 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
                     hVal = rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]);
                     Check_Type(hVal, T_SYMBOL);
                     val = rb_id2name(rb_to_id(hVal));
-                    if (strcmp(val, "normal") == 0) {
-                        fileType = GP_FILE_TYPE_NORMAL;
-                    } else if (strcmp(val, "preview") == 0) {
+                    if (strcmp(val, "preview") == 0) {
                         fileType = GP_FILE_TYPE_PREVIEW;
                     }
                 } else if (strcmp(key, "file") == 0) {
                     hVal = rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]);
                     switch(TYPE(hVal)) {
                         case T_STRING:
-                            strcpy(cFolderName, c->virtFolder);
                             strcpy(cFileName, RSTRING(hVal)->ptr);
                             break;
                         case T_SYMBOL:
                             val = rb_id2name(rb_to_id(hVal));
-                            gp_result_check(gp_camera_folder_list_files(c->camera, c->virtFolder, c->list, c->context));
+                            RESULT_CHECK_LIST(gp_camera_folder_list_files(c->camera, c->virtFolder, list, c->context), list);
                             if (strcmp(val, "first") == 0) {
-                                count = 0;
-                            } else if (strcmp(val, "last") == 0) {
-                                count = gp_result_check(gp_list_count(c->list)) - 1;
-                            } else {
-                                count = -1;
+                                RESULT_CHECK_LIST(gp_list_get_name(list, 0, &name), list);
+                                strcpy(cFileName, name);
                             }
-                            gp_result_check(gp_list_get_name(c->list, count, &name));
-                            strcpy(cFileName, name);
                             break;
                         default:
+                            gp_list_free(list);
                             rb_raise(rb_eTypeError, "Not valid value type");
                             return Qnil;
                     }
@@ -320,12 +346,14 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
             }
             break;
         default:
+            gp_list_free(list);
             rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
             return Qnil;
     }
     
-    gp_result_check(gp_camera_file_get(c->camera, cFolderName, cFileName, fileType, c->file, c->context));
-    gp_result_check(gp_file_get_data_and_size(c->file, &fData, &fSize));
+    gp_file_new(&file);
+    RESULT_CHECK_LIST_FILE(gp_camera_file_get(c->camera, cFolderName, cFileName, fileType, file, c->context), list, file);
+    RESULT_CHECK_LIST_FILE(gp_file_get_data_and_size(file, &fData, &fSize), list, file);
     if (newName == 1)  {
         strcat(fName, newNameStr);
         pchNew = strrchr(newNameStr, '.');
@@ -341,6 +369,8 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     fd = open(fName, O_CREAT | O_WRONLY, 0644);
     write(fd, fData, fSize);
     close(fd);
+    gp_file_free(file);
+    gp_list_free(list);
     return self;
 }
 
@@ -363,18 +393,36 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
  *
  */
 VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
-    int i;
+    int i, count;
     int one = 1;
-    GPhoto2Camera *c;
-    const char *key;
+    const char *key, *name;
     char cFileName[100], cFolderName[100];
+
+    GPhoto2Camera *c;
+
+    CameraList *list;
+
     VALUE arr;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
     
-    strcpy(cFileName, c->path->name);
-    strcpy(cFolderName, c->path->folder);
+    gp_list_new(&list);
+    
+    strcpy(cFolderName, c->virtFolder);
 
+    RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
+    RESULT_CHECK_LIST(gp_camera_folder_list_files(c->camera, c->virtFolder, list, c->context), list);
+    count = gp_list_count(list);
+    RESULT_CHECK_LIST(count, list);
+    if (count == 0) {
+        gp_list_free(list);
+        return self; // Nothing to delete
+    } else {
+        count -= 1;
+    }
+    RESULT_CHECK_LIST(gp_list_get_name(list, count, &name), list);
+    strcpy(cFileName, name);
+    
     switch(argc) {
         case 0:
             break;
@@ -391,11 +439,11 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
                                 key = rb_id2name(rb_to_id(RARRAY(arr)->ptr[i]));
                                 break;
                             default:
+                                gp_list_free(list);
                                 rb_raise(rb_eTypeError, "Not valid key type");
                                 return Qnil;
                         }
                         if (strcmp(key, "file") == 0) {
-                            strcpy(cFolderName, c->virtFolder);
                             strcpy(cFileName, RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr);
                         }
                     }
@@ -403,24 +451,24 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
                 case T_SYMBOL:
                     key = rb_id2name(rb_to_id(argv[0]));
                     if (strcmp(key, "all") == 0) {
-                        strcpy(cFolderName, c->virtFolder);
                         one = 0;
                     }
                     break;
             }
             break;
         default:
+            gp_list_free(list);
             rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
             return Qnil;
     }
     
-    gp_result_check(gp_filesystem_reset(c->camera->fs));
     if (one == 1) {
-        gp_result_check(gp_camera_file_delete(c->camera, cFolderName, cFileName, c->context));
+        RESULT_CHECK_LIST(gp_camera_file_delete(c->camera, cFolderName, cFileName, c->context), list);
     } else {
-        gp_result_check(gp_camera_folder_delete_all(c->camera, cFolderName, c->context));
+        RESULT_CHECK_LIST(gp_camera_folder_delete_all(c->camera, cFolderName, c->context), list);
     }
-    gp_result_check(gp_filesystem_reset(c->camera->fs));
+    RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
+    gp_list_free(list);
     return self;
 }
 
@@ -805,18 +853,26 @@ VALUE camera_folder(VALUE self) {
 VALUE camera_subfolders(VALUE self) {
     int i, count;
     const char *name;
+
     GPhoto2Camera *c;
+
+    CameraList *list;
+
     VALUE arr;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
     
-    gp_result_check(gp_camera_folder_list_folders(c->camera, c->virtFolder, c->list, c->context));
-    count = gp_result_check(gp_list_count(c->list));
+    gp_list_new(&list);
+    
+    RESULT_CHECK_LIST(gp_camera_folder_list_folders(c->camera, c->virtFolder, list, c->context), list);
+    count = gp_list_count(list);
+    RESULT_CHECK_LIST(count, list);
     arr = rb_ary_new();
     for (i = 0; i < count; i++) {
-        gp_result_check(gp_list_get_name(c->list, i, &name));
+        RESULT_CHECK_LIST(gp_list_get_name(list, i, &name), list);
         rb_ary_push(arr, rb_str_new2(name));
     }
+    gp_list_free(list);
     return arr;
 }
 
@@ -843,7 +899,11 @@ VALUE camera_files(int argc, VALUE *argv, VALUE self) {
     int i, count;
     int num = 0;
     const char *name;
+
     GPhoto2Camera *c;
+
+    CameraList *list;
+
     VALUE arr;
     
     if (argc == 1) {
@@ -855,9 +915,12 @@ VALUE camera_files(int argc, VALUE *argv, VALUE self) {
     
     Data_Get_Struct(self, GPhoto2Camera, c);
     
-    gp_result_check(gp_filesystem_reset(c->camera->fs));
-    gp_result_check(gp_camera_folder_list_files(c->camera, c->virtFolder, c->list, c->context));
-    count = gp_result_check(gp_list_count(c->list));
+    gp_list_new(&list);
+    
+    RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
+    RESULT_CHECK_LIST(gp_camera_folder_list_files(c->camera, c->virtFolder, list, c->context), list);
+    count = gp_list_count(list);
+    RESULT_CHECK_LIST(count, list);
     arr = rb_ary_new();
     if ((count < num) || (num <= 0)) {
         num = 0;
@@ -865,9 +928,10 @@ VALUE camera_files(int argc, VALUE *argv, VALUE self) {
         num = count - num;
     }
     for (i = num; i < count; i++) {
-        gp_result_check(gp_list_get_name(c->list, i, &name));
+        RESULT_CHECK_LIST(gp_list_get_name(list, i, &name), list);
         rb_ary_push(arr, rb_str_new2(name));
     }
+    gp_list_free(list);
     return arr;
 }
 
@@ -888,13 +952,24 @@ VALUE camera_files(int argc, VALUE *argv, VALUE self) {
  *
  */
 VALUE camera_files_count(VALUE self) {
+    int count;
+    
     GPhoto2Camera *c;
+
+    CameraList *list;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
     
-    gp_result_check(gp_filesystem_reset(c->camera->fs));
-    gp_result_check(gp_camera_folder_list_files(c->camera, c->virtFolder, c->list, c->context));
-    return INT2FIX(gp_result_check(gp_list_count(c->list)));
+    gp_list_new(&list);
+    
+    RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
+    RESULT_CHECK_LIST(gp_camera_folder_list_files(c->camera, c->virtFolder, list, c->context), list);
+    count = gp_list_count(list);
+    RESULT_CHECK_LIST(count, list);
+    
+    gp_list_free(list);
+    
+    return INT2FIX(count);
 }
 /*
  * call-seq:
@@ -953,17 +1028,23 @@ VALUE camera_folder_down(VALUE self, VALUE folder) {
 
     const char *name;
     int index;
+
+    CameraList *list;
+
     GPhoto2Camera *c;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
     
+    gp_list_new(&list);
+    
     name = RSTRING(folder)->ptr;
-    gp_result_check(gp_camera_folder_list_folders(c->camera, c->virtFolder, c->list, c->context));
-    gp_result_check(gp_list_find_by_name(c->list, &index, name));
+    RESULT_CHECK_LIST(gp_camera_folder_list_folders(c->camera, c->virtFolder, list, c->context), list);
+    RESULT_CHECK_LIST(gp_list_find_by_name(list, &index, name), list);
     if (strlen(c->virtFolder) > 1) {
         strcat(c->virtFolder, "/");
     }
     strcat(c->virtFolder, name);
+    gp_list_free(list);
     return self;
 }
 
@@ -1050,9 +1131,7 @@ VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
         case GP_EVENT_FILE_ADDED:
         case GP_EVENT_FOLDER_ADDED:
             ce->path = (CameraFilePath*)evtData;
-            free(c->path);
-            c->path = ce->path;
-            strcpy(c->virtFolder, c->path->folder);
+            strcpy(c->virtFolder, ce->path->folder);
             gp_result_check(gp_camera_wait_for_event(c->camera, 100, &fakeType, &fakeData, c->context));
             break;
         case GP_EVENT_UNKNOWN:
