@@ -823,8 +823,10 @@ VALUE camera_subfolders(VALUE self) {
 /*
  * call-seq:
  *   files                          =>      array
+ *   files(num)                     =>      array of length num
  *
- * Returns an array of file names in current camera path.
+ * Returns an array of file names in current camera path. Or num of last files
+ * in current camera path.
  *
  * Examples:
  *
@@ -837,11 +839,19 @@ VALUE camera_subfolders(VALUE self) {
  *                                           "DSC_0003.JPG", ... ]
  *
  */
-VALUE camera_files(VALUE self) {
+VALUE camera_files(int argc, VALUE *argv, VALUE self) {
     int i, count;
+    int num = 0;
     const char *name;
     GPhoto2Camera *c;
     VALUE arr;
+    
+    if (argc == 1) {
+        num = NUM2INT(argv[0]);
+    } else if (argc != 0) {
+        rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
+        return Qnil;
+    }
     
     Data_Get_Struct(self, GPhoto2Camera, c);
     
@@ -849,13 +859,43 @@ VALUE camera_files(VALUE self) {
     gp_result_check(gp_camera_folder_list_files(c->camera, c->virtFolder, c->list, c->context));
     count = gp_result_check(gp_list_count(c->list));
     arr = rb_ary_new();
-    for (i = 0; i < count; i++) {
+    if ((count < num) || (num <= 0)) {
+        num = 0;
+    } else {
+        num = count - num;
+    }
+    for (i = num; i < count; i++) {
         gp_result_check(gp_list_get_name(c->list, i, &name));
         rb_ary_push(arr, rb_str_new2(name));
     }
     return arr;
 }
 
+/*
+ * call-seq:
+ *   files_count                    =>      fixnum
+ *
+ * Returns an count of files in current camera path.
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Nikon DSC D80
+ *   c.folder                       #=>     "/"
+ *   c.files_count                  #=>     0
+ *   c.capture
+ *   c.files_count                  #=>     123
+ *
+ */
+VALUE camera_files_count(VALUE self) {
+    GPhoto2Camera *c;
+    
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    
+    gp_result_check(gp_filesystem_reset(c->camera->fs));
+    gp_result_check(gp_camera_folder_list_files(c->camera, c->virtFolder, c->list, c->context));
+    return INT2FIX(gp_result_check(gp_list_count(c->list)));
+}
 /*
  * call-seq:
  *   folder_up                      =>      camera

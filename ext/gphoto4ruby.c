@@ -79,7 +79,8 @@ void Init_gphoto4ruby() {
     rb_define_method(rb_cGPhoto2Camera, "delete", camera_delete, -1); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "folder", camera_folder, 0); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "subfolders", camera_subfolders, 0); /* in gphoto2camera.c */
-    rb_define_method(rb_cGPhoto2Camera, "files", camera_files, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "files", camera_files, -1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "files_count", camera_files_count, 0); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "folder_up", camera_folder_up, 0); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "folder_down", camera_folder_down, 1); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "create_folder", camera_create_folder, 1); /* in gphoto2camera.c */

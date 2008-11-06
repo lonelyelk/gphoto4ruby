@@ -57,7 +57,8 @@ VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal);
 
 VALUE camera_folder(VALUE self);
 VALUE camera_subfolders(VALUE self);
-VALUE camera_files(VALUE self);
+VALUE camera_files(int argc, VALUE *argv, VALUE self);
+VALUE camera_files_count(VALUE self);
 VALUE camera_folder_up(VALUE self);
 VALUE camera_folder_down(VALUE self, VALUE folder);
 VALUE camera_create_folder(VALUE self, VALUE folder);
