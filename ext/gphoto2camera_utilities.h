@@ -53,6 +53,8 @@ VALUE listRange(CameraWidget *cc);
 VALUE setRange(VALUE self, GPhoto2Camera *c, VALUE newNum, int save);
 VALUE getToggle(CameraWidget *cc);
 VALUE setToggle(VALUE self, GPhoto2Camera *c, VALUE newVal, int save);
+VALUE getDate(CameraWidget *cc);
+VALUE setDate(VALUE self, GPhoto2Camera *c, VALUE newNum, int save);
 void saveConfigs(VALUE self, GPhoto2Camera *c);
 
 void populateWithConfigs(CameraWidget *cc, VALUE arr);

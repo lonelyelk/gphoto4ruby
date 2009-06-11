@@ -1,3 +1,12 @@
+== 0.3.2
+
+* Added setting and getting of GP_WIDGET_DATE type configs. Behavior is strange
+  though. In nikon D80 config name "time":
+  * libgphoto 2.4.2 -- able to read, but unable to set
+  * libgphoto 2.4.6 -- able to set, but when reading keep getting value 3 hours
+                       earlier. For any camera time zone. But the value set is
+                       correctly applied to exif. So can be used somehow
+
 == 0.3.1
 
 * Added files_count function and parameter allowing to limit files function

@@ -61,6 +61,7 @@ void Init_gphoto4ruby() {
     rb_define_const(rb_cGPhoto2Camera, "CONFIG_TYPE_TEXT", INT2FIX(GP_WIDGET_TEXT));
     rb_define_const(rb_cGPhoto2Camera, "CONFIG_TYPE_RANGE", INT2FIX(GP_WIDGET_RANGE));
     rb_define_const(rb_cGPhoto2Camera, "CONFIG_TYPE_TOGGLE", INT2FIX(GP_WIDGET_TOGGLE));
+    rb_define_const(rb_cGPhoto2Camera, "CONFIG_TYPE_DATE", INT2FIX(GP_WIDGET_DATE));
 
     rb_define_const(rb_cGPhoto2CameraEvent, "EVENT_TYPE_UNKNOWN", EVENT_UNKNOWN);
     rb_define_const(rb_cGPhoto2CameraEvent, "EVENT_TYPE_TIMEOUT", EVENT_TIMEOUT);

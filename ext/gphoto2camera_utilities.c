@@ -39,7 +39,11 @@ VALUE getRadio(CameraWidget *cc) {
     const char *val;
     
     gp_result_check(gp_widget_get_value(cc, &val));
-    return rb_str_new2(val);
+    if (val == NULL) {
+      return Qnil;
+    } else {
+      return rb_str_new2(val);
+    }
 }
 
 VALUE listRadio(CameraWidget *cc) {
@@ -71,7 +75,11 @@ VALUE getText(CameraWidget *cc) {
     const char *val;
     
     gp_result_check(gp_widget_get_value(cc, &val));
-    return rb_str_new2(val);
+    if (val == NULL) {
+      return Qnil;
+    } else {
+      return rb_str_new2(val);
+    }
 }
 
 VALUE setText(VALUE self, GPhoto2Camera *c, VALUE newVal, int save) {
@@ -165,6 +173,28 @@ VALUE setToggle(VALUE self, GPhoto2Camera *c, VALUE newVal, int save) {
     }
 }
 
+VALUE getDate(CameraWidget *cc) {
+    int val;
+    char str[25];
+    gp_result_check(gp_widget_get_value(cc, &val));
+//    printf("got: %d\n",val);
+    sprintf(str, "Time.at(%d).utc", val);
+    return rb_eval_string(str);
+}
+
+VALUE setDate(VALUE self, GPhoto2Camera *c, VALUE newNum, int save) {
+    int val;
+
+    val = NUM2INT(rb_funcall(newNum, rb_intern("to_i"), 0));
+
+//    printf("setting: %d\n", val);
+    gp_result_check(gp_widget_set_value(c->childConfig, &val));
+    if (save == 1) {
+        saveConfigs(self, c);
+    }
+    return newNum;
+}
+
 void saveConfigs(VALUE self, GPhoto2Camera *c) {
     VALUE cfgs, cfg_changed, name;
     CameraWidgetType widgettype;
@@ -190,6 +220,9 @@ void saveConfigs(VALUE self, GPhoto2Camera *c) {
                 break;
             case GP_WIDGET_TOGGLE:
                 rb_hash_aset(cfgs, name, getToggle(c->childConfig));
+                break;
+            case GP_WIDGET_DATE:
+                rb_hash_aset(cfgs, name, getDate(c->childConfig));
                 break;
             default:
                 break;
@@ -221,6 +254,10 @@ void populateWithConfigs(CameraWidget *cc, VALUE hash) {
         case GP_WIDGET_TOGGLE:
             gp_result_check(gp_widget_get_name(cc, &name));
             rb_hash_aset(hash, rb_str_new2(name), getToggle(cc));
+            break;
+        case GP_WIDGET_DATE:
+            gp_result_check(gp_widget_get_name(cc, &name));
+            rb_hash_aset(hash, rb_str_new2(name), getDate(cc));
             break;
         case GP_WIDGET_WINDOW:
         case GP_WIDGET_SECTION:

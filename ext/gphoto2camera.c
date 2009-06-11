@@ -531,6 +531,9 @@ VALUE camera_get_config(int argc, VALUE *argv, VALUE self) {
                         case GP_WIDGET_TOGGLE:
                             rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getToggle(c->childConfig));
                             break;
+                        case GP_WIDGET_DATE:
+                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getDate(c->childConfig));
+                            break;
                         default:
                             break;
                     }
@@ -605,6 +608,10 @@ VALUE camera_config_merge(VALUE self, VALUE hash) {
                 case GP_WIDGET_TOGGLE:
                     rb_ary_push(cfg_changed, rb_str_new2(key));
                     setToggle(self, c, rb_hash_aref(hash, RARRAY(arr)->ptr[i]), 0);
+                    break;
+                case GP_WIDGET_DATE:
+                    rb_ary_push(cfg_changed, rb_str_new2(key));
+                    setDate(self, c, rb_hash_aref(hash, RARRAY(arr)->ptr[i]), 0);
                     break;
                 default:
                     break;
@@ -738,6 +745,20 @@ VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
                         return Qnil;
                     }
                     break;
+                case GP_WIDGET_DATE:
+                    if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
+                        val = getDate(c->childConfig);
+                        rb_hash_aset(rb_iv_get(self, "@configuration"), rb_str_new2(name), val);
+                        return val;
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "all") == 0) {
+                        return rb_ary_new();
+                    } else if (strcmp(rb_id2name(rb_to_id(dir)), "type") == 0) {
+                        return INT2FIX(GP_WIDGET_DATE);
+                    } else {
+                        rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(dir)));
+                        return Qnil;
+                    }
+                    break;
                 default:
                     rb_raise(rb_cGPhoto2ConfigurationError, "Not supported yet");
                     return Qnil;
@@ -805,6 +826,11 @@ VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
             cfg_changed = rb_iv_get(self, "@configs_changed");
             rb_ary_push(cfg_changed, rb_str_new2(name));
             return setToggle(self, c, newVal, 1);
+            break;
+        case GP_WIDGET_DATE:
+            cfg_changed = rb_iv_get(self, "@configs_changed");
+            rb_ary_push(cfg_changed, rb_str_new2(name));
+            return setDate(self, c, newVal, 1);
             break;
         default:
             rb_raise(rb_cGPhoto2ConfigurationError, "Cannot access this setting");
