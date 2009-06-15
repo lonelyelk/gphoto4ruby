@@ -42,6 +42,13 @@ VALUE rb_cGPhoto2ConfigurationError;
     }                                   \
 }
 
+#define RESULT_CHECK_EVENT(r,e) { \
+    if (r < 0) {                        \
+        free(e);                        \
+        rb_raise_gp_result(r);          \
+    }                                   \
+}
+
 void camera_mark(GPhoto2Camera *c) {
 }
 
@@ -1131,8 +1138,7 @@ VALUE camera_create_folder(VALUE self, VALUE folder) {
 VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
     GPhoto2Camera *c;
     GPhoto2CameraEvent *ce;
-    CameraEventType fakeType;
-    void *evtData, *fakeData;
+    void *evtData;
     int to;
     
     switch (argc) {
@@ -1150,18 +1156,16 @@ VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
     Data_Get_Struct(self, GPhoto2Camera, c);
     ce = (GPhoto2CameraEvent*) malloc(sizeof(GPhoto2CameraEvent));
     
-    gp_result_check(gp_filesystem_reset(c->camera->fs));
-    gp_result_check(gp_camera_wait_for_event(c->camera, to, &(ce->type), &evtData, c->context));
+//    RESULT_CHECK_EVENT(gp_filesystem_reset(c->camera->fs), ce);
+    RESULT_CHECK_EVENT(gp_camera_wait_for_event(c->camera, to, &(ce->type), &evtData, c->context), ce);
     
     switch (ce->type) {
         case GP_EVENT_FILE_ADDED:
         case GP_EVENT_FOLDER_ADDED:
             ce->path = (CameraFilePath*)evtData;
             strcpy(c->virtFolder, ce->path->folder);
-            gp_result_check(gp_camera_wait_for_event(c->camera, 100, &fakeType, &fakeData, c->context));
             break;
         case GP_EVENT_UNKNOWN:
-            gp_result_check(gp_camera_wait_for_event(c->camera, 100, &fakeType, &fakeData, c->context));
             break;
         default:
             break;

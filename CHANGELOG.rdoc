@@ -1,3 +1,8 @@
+== 0.3.3
+
+* Removed fake unknown type event catch when receiving file or folder created evt
+* Fixed bug of segmentation fault when raising exception in wait
+
 == 0.3.2
 
 * Added setting and getting of GP_WIDGET_DATE type configs. Behavior is strange
