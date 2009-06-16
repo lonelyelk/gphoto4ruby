@@ -14,3 +14,9 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
     rdoc.options << "--charset=UTF-8"
     rdoc.options << "--webcvs=http://github.com/lonelyelk/gphoto4ruby/tree/master"
 end
+
+desc "Upload rdoc to RubyForge."
+
+task :publish_rdoc => [:rdoc] do
+  exec "scp -r rdoc/* lonelyelk@rubyforge.org:/var/www/gforge-projects/gphoto4ruby"
+end
