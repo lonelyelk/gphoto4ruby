@@ -1114,10 +1114,19 @@ VALUE camera_create_folder(VALUE self, VALUE folder) {
  * Waits for an event from camera for specified amount of milliseconds.
  * Returns an instance of GPhoto2::CameraEvent. When capturing image manually
  * with camera connected through USB, images are not saved on memory card
- * until you call this method. During tests EVENT_TYPE_FILE_ADDED event
+ * until you call this method.
+ *
+ * NOTE: During tests on Nikon D80 EVENT_TYPE_FILE_ADDED event
  * was always followed by EVENT_TYPE_UNKNOWN. So in the case of 
- * EVENT_TYPE_FILE_ADDED or EVENT_TYPE_FOLDER_ADDED, an extra call is made
- * with 100ms timeout which result is ignored.
+ * EVENT_TYPE_FILE_ADDED, an extra call should be
+ * made with 100ms timeout which result is ignored.
+ *
+ * NOTE: During tests on Nikon D80, when captured each 1000 images, there are
+ * two EVENT_TYPE_FILE_ADDED events: one with new folder name and another with
+ * file name. Also each of them is followed by EVENT_TYPE_UNKNOWN.
+ *
+ * NOTE: Base C function gp_camera_wait_for_event is considered in development 
+ * and may change its behavior, so will this function.
  *
  * When image is captured manually and then event is caught, camera virtual
  * folder is changed to the one where files are saved.
