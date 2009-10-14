@@ -19,12 +19,13 @@
  * along with GPhoto4Ruby. If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
+/*
 #ifndef RUBY_19
 #define RSTRING_PTR(c) (RSTRING(c)->ptr)
 #define RARRAY_PTR(c) (RARRAY(c)->ptr)
 #define RARRAY_LEN(c) (RARRAY(c)->len)
 #endif
+*/
 
 #include <ruby.h>
 #include "gphoto2camera_event.h"
