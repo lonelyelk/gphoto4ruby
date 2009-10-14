@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
 #include <gphoto2/gphoto2.h>
 #include <ruby.h>

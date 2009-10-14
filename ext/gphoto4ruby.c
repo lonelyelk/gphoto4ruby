@@ -26,11 +26,6 @@
 #define RARRAY_LEN(c) (RARRAY(c)->len)
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <string.h>
-#include <gphoto2/gphoto2.h>
 #include <ruby.h>
 #include "gphoto2camera_event.h"
 #include "gphoto2camera_utilities.h"

@@ -248,7 +248,7 @@ VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
  *
  */
 VALUE camera_save(int argc, VALUE *argv, VALUE self) {
-    int i, count;
+    int i, count, retVal;
     int newName = 0;
     const char *fData, *key, *val, *name;
     char *fPath, *newNameStr, *pchNew, *pchSrc;
@@ -374,10 +374,13 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
         strcat(fName, cFileName);
     }
     fd = open(fName, O_CREAT | O_WRONLY, 0644);
-    write(fd, fData, fSize);
+    retVal = write(fd, fData, fSize);
     close(fd);
     gp_file_free(file);
     gp_list_free(list);
+    if (retVal < 0) {
+      rb_raise(rb_eIOError, "Can't save into file");
+    }
     return self;
 }
 
