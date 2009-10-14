@@ -20,6 +20,12 @@
  *
  */
 
+#ifndef RUBY_19
+#define RSTRING_PTR(c) (RSTRING(c)->ptr)
+#define RARRAY_PTR(c) (RARRAY(c)->ptr)
+#define RARRAY_LEN(c) (RARRAY(c)->len)
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>

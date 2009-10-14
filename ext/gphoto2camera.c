@@ -104,7 +104,7 @@ VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
             
             gp_result_check(gp_port_info_list_new(&portInfoList));
             gp_result_check(gp_port_info_list_load(portInfoList));
-            portIndex = gp_result_check(gp_port_info_list_lookup_path(portInfoList, RSTRING(argv[0])->ptr));
+            portIndex = gp_result_check(gp_port_info_list_lookup_path(portInfoList, RSTRING_PTR(argv[0])));
             gp_result_check(gp_port_info_list_get_info(portInfoList, portIndex, &p));
             gp_result_check(gp_camera_set_port_info(c->camera, p));
             break;
@@ -295,13 +295,13 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
                 return Qnil;
             }
             arr = rb_funcall(argv[0], rb_intern("keys"), 0);
-            for (i = 0; i < RARRAY(arr)->len; i++) {
-                switch(TYPE(RARRAY(arr)->ptr[i])) {
+            for (i = 0; i < RARRAY_LEN(arr); i++) {
+                switch(TYPE(RARRAY_PTR(arr)[i])) {
                     case T_STRING:
-                        key = RSTRING(RARRAY(arr)->ptr[i])->ptr;
+                        key = RSTRING_PTR(RARRAY_PTR(arr)[i]);
                         break;
                     case T_SYMBOL:
-                        key = rb_id2name(rb_to_id(RARRAY(arr)->ptr[i]));
+                        key = rb_id2name(rb_to_id(RARRAY_PTR(arr)[i]));
                         break;
                     default:
                         gp_list_free(list);
@@ -309,7 +309,7 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
                         return Qnil;
                 }
                 if (strcmp(key, "to_folder") == 0) {
-                    fPath = RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr;
+                    fPath = RSTRING_PTR(rb_hash_aref(argv[0], RARRAY_PTR(arr)[i]));
                     if (strlen(fPath) > 0) {
                         if (fPath[strlen(fPath)] == '/') {
                             strcpy(fName, fPath);
@@ -319,22 +319,22 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
                         }
                     } 
                 } else if (strcmp(key, "new_name") == 0) {
-                    newNameStr = RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr;
+                    newNameStr = RSTRING_PTR(rb_hash_aref(argv[0], RARRAY_PTR(arr)[i]));
                     if (strlen(newNameStr) > 0) {
                         newName = 1;
                     }
                 } else if (strcmp(key, "type") == 0) {
-                    hVal = rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]);
+                    hVal = rb_hash_aref(argv[0], RARRAY_PTR(arr)[i]);
                     Check_Type(hVal, T_SYMBOL);
                     val = rb_id2name(rb_to_id(hVal));
                     if (strcmp(val, "preview") == 0) {
                         fileType = GP_FILE_TYPE_PREVIEW;
                     }
                 } else if (strcmp(key, "file") == 0) {
-                    hVal = rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]);
+                    hVal = rb_hash_aref(argv[0], RARRAY_PTR(arr)[i]);
                     switch(TYPE(hVal)) {
                         case T_STRING:
-                            strcpy(cFileName, RSTRING(hVal)->ptr);
+                            strcpy(cFileName, RSTRING_PTR(hVal));
                             break;
                         case T_SYMBOL:
                             val = rb_id2name(rb_to_id(hVal));
@@ -437,13 +437,13 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
             switch(TYPE(argv[0])) {
                 case T_HASH:
                     arr = rb_funcall(argv[0], rb_intern("keys"), 0);
-                    for (i = 0; i < RARRAY(arr)->len; i++) {
-                        switch(TYPE(RARRAY(arr)->ptr[i])) {
+                    for (i = 0; i < RARRAY_LEN(arr); i++) {
+                        switch(TYPE(RARRAY_PTR(arr)[i])) {
                             case T_STRING:
-                                key = RSTRING(RARRAY(arr)->ptr[i])->ptr;
+                                key = RSTRING_PTR(RARRAY_PTR(arr)[i]);
                                 break;
                             case T_SYMBOL:
-                                key = rb_id2name(rb_to_id(RARRAY(arr)->ptr[i]));
+                                key = rb_id2name(rb_to_id(RARRAY_PTR(arr)[i]));
                                 break;
                             default:
                                 gp_list_free(list);
@@ -451,7 +451,7 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
                                 return Qnil;
                         }
                         if (strcmp(key, "file") == 0) {
-                            strcpy(cFileName, RSTRING(rb_hash_aref(argv[0], RARRAY(arr)->ptr[i]))->ptr);
+                            strcpy(cFileName, RSTRING_PTR(rb_hash_aref(argv[0], RARRAY_PTR(arr)[i])));
                         }
                     }
                     break;
@@ -521,25 +521,25 @@ VALUE camera_get_config(int argc, VALUE *argv, VALUE self) {
                 gp_widget_free(c->config);
                 gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
                 arr = rb_funcall(cfg, rb_intern("keys"), 0);
-                for (i = 0; i < RARRAY(arr)->len; i++) {
-                    key = RSTRING(RARRAY(arr)->ptr[i])->ptr;
+                for (i = 0; i < RARRAY_LEN(arr); i++) {
+                    key = RSTRING_PTR(RARRAY_PTR(arr)[i]);
                     gp_result_check(gp_widget_get_child_by_name(c->config, key, &(c->childConfig)));
                     gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
                     switch (widgettype) {
                         case GP_WIDGET_RADIO:
-                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getRadio(c->childConfig));
+                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getRadio(c->childConfig));
                             break;
                         case GP_WIDGET_TEXT:
-                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getText(c->childConfig));
+                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getText(c->childConfig));
                             break;
                         case GP_WIDGET_RANGE:
-                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getRange(c->childConfig));
+                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getRange(c->childConfig));
                             break;
                         case GP_WIDGET_TOGGLE:
-                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getToggle(c->childConfig));
+                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getToggle(c->childConfig));
                             break;
                         case GP_WIDGET_DATE:
-                            rb_hash_aset(cfg, RARRAY(arr)->ptr[i], getDate(c->childConfig));
+                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getDate(c->childConfig));
                             break;
                         default:
                             break;
@@ -584,13 +584,13 @@ VALUE camera_config_merge(VALUE self, VALUE hash) {
     arr = rb_funcall(hash, rb_intern("keys"), 0);
     cfgs = rb_iv_get(self, "@configuration");
     cfg_changed = rb_iv_get(self, "@configs_changed");
-    for (i = 0; i < RARRAY(arr)->len; i++) {
-        switch(TYPE(RARRAY(arr)->ptr[i])) {
+    for (i = 0; i < RARRAY_LEN(arr); i++) {
+        switch(TYPE(RARRAY_PTR(arr)[i])) {
             case T_STRING:
-                key = RSTRING(RARRAY(arr)->ptr[i])->ptr;
+                key = RSTRING_PTR(RARRAY_PTR(arr)[i]);
                 break;
             case T_SYMBOL:
-                key = rb_id2name(rb_to_id(RARRAY(arr)->ptr[i]));
+                key = rb_id2name(rb_to_id(RARRAY_PTR(arr)[i]));
                 break;
             default:
                 rb_raise(rb_eTypeError, "Not valid key type");
@@ -602,23 +602,23 @@ VALUE camera_config_merge(VALUE self, VALUE hash) {
             switch (widgettype) {
                 case GP_WIDGET_RADIO:
                     rb_ary_push(cfg_changed, rb_str_new2(key));
-                    setRadio(self, c, rb_hash_aref(hash, RARRAY(arr)->ptr[i]), 0);
+                    setRadio(self, c, rb_hash_aref(hash, RARRAY_PTR(arr)[i]), 0);
                     break;
                 case GP_WIDGET_TEXT:
                     rb_ary_push(cfg_changed, rb_str_new2(key));
-                    setText(self, c, rb_hash_aref(hash, RARRAY(arr)->ptr[i]), 0);
+                    setText(self, c, rb_hash_aref(hash, RARRAY_PTR(arr)[i]), 0);
                     break;
                 case GP_WIDGET_RANGE:
                     rb_ary_push(cfg_changed, rb_str_new2(key));
-                    setRange(self, c, rb_hash_aref(hash, RARRAY(arr)->ptr[i]), 0);
+                    setRange(self, c, rb_hash_aref(hash, RARRAY_PTR(arr)[i]), 0);
                     break;
                 case GP_WIDGET_TOGGLE:
                     rb_ary_push(cfg_changed, rb_str_new2(key));
-                    setToggle(self, c, rb_hash_aref(hash, RARRAY(arr)->ptr[i]), 0);
+                    setToggle(self, c, rb_hash_aref(hash, RARRAY_PTR(arr)[i]), 0);
                     break;
                 case GP_WIDGET_DATE:
                     rb_ary_push(cfg_changed, rb_str_new2(key));
-                    setDate(self, c, rb_hash_aref(hash, RARRAY(arr)->ptr[i]), 0);
+                    setDate(self, c, rb_hash_aref(hash, RARRAY_PTR(arr)[i]), 0);
                     break;
                 default:
                     break;
@@ -666,7 +666,7 @@ VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
     
     switch (TYPE(str)) {
         case T_STRING:
-            name = RSTRING(str)->ptr;
+            name = RSTRING_PTR(str);
             break;
         case T_SYMBOL:
             name = rb_id2name(rb_to_id(str));
@@ -799,7 +799,7 @@ VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
     
     switch (TYPE(str)) {
         case T_STRING:
-            name = RSTRING(str)->ptr;
+            name = RSTRING_PTR(str);
             break;
         case T_SYMBOL:
             name = rb_id2name(rb_to_id(str));
@@ -1070,7 +1070,7 @@ VALUE camera_folder_down(VALUE self, VALUE folder) {
     
     gp_list_new(&list);
     
-    name = RSTRING(folder)->ptr;
+    name = RSTRING_PTR(folder);
     RESULT_CHECK_LIST(gp_camera_folder_list_folders(c->camera, c->virtFolder, list, c->context), list);
     RESULT_CHECK_LIST(gp_list_find_by_name(list, &index, name), list);
     if (strlen(c->virtFolder) > 1) {
@@ -1102,7 +1102,7 @@ VALUE camera_create_folder(VALUE self, VALUE folder) {
     
     Data_Get_Struct(self, GPhoto2Camera, c);
     
-    name = RSTRING(folder)->ptr;
+    name = RSTRING_PTR(folder);
     gp_result_check(gp_camera_folder_make_dir(c->camera, c->virtFolder, name, c->context));
     return self;
 }

@@ -62,7 +62,7 @@ VALUE listRadio(CameraWidget *cc) {
 VALUE setRadio(VALUE self, GPhoto2Camera *c, VALUE newVal, int save) {
     const char *val;
 
-    val = RSTRING(rb_funcall(newVal, rb_intern("to_s"), 0))->ptr;
+    val = RSTRING_PTR(rb_funcall(newVal, rb_intern("to_s"), 0));
 
     gp_result_check(gp_widget_set_value(c->childConfig, val));
     if (save == 1) {
@@ -85,7 +85,7 @@ VALUE getText(CameraWidget *cc) {
 VALUE setText(VALUE self, GPhoto2Camera *c, VALUE newVal, int save) {
     const char *val;
 
-    val = RSTRING(rb_funcall(newVal, rb_intern("to_s"), 0))->ptr;
+    val = RSTRING_PTR(rb_funcall(newVal, rb_intern("to_s"), 0));
 
     gp_result_check(gp_widget_set_value(c->childConfig, val));
     if (save == 1) {
@@ -140,7 +140,7 @@ VALUE getToggle(CameraWidget *cc) {
 
 VALUE setToggle(VALUE self, GPhoto2Camera *c, VALUE newVal, int save) {
     int val = -1;
-    char *nV;
+    const char *nV;
     
     switch(TYPE(newVal)) {
         case T_TRUE:
@@ -150,7 +150,7 @@ VALUE setToggle(VALUE self, GPhoto2Camera *c, VALUE newVal, int save) {
             val = 0;
             break;
         case T_SYMBOL:
-            nV = rb_id2name(rb_to_id(newVal));
+            nV = rb_id2name(SYM2ID(newVal));
             if (strcmp(nV, "true") == 0) {
                 val = 1;
             } else if(strcmp(nV, "false") == 0) {
@@ -206,7 +206,7 @@ void saveConfigs(VALUE self, GPhoto2Camera *c) {
     cfgs = rb_iv_get(self, "@configuration");
     name = rb_ary_shift(cfg_changed);
     while (TYPE(name) != T_NIL) {
-        gp_result_check(gp_widget_get_child_by_name(c->config, RSTRING(name)->ptr, &(c->childConfig)));
+        gp_result_check(gp_widget_get_child_by_name(c->config, RSTRING_PTR(name), &(c->childConfig)));
         gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
         switch (widgettype) {
             case GP_WIDGET_RADIO:
