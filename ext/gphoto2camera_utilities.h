@@ -26,6 +26,17 @@
 #include <gphoto2/gphoto2.h>
 #include <ruby.h>
 
+
+#ifndef RSTRING_PTR
+#define RSTRING_PTR(c) (RSTRING(c)->ptr)
+#endif
+#ifndef RARRAY_PTR
+#define RARRAY_PTR(c) (RARRAY(c)->ptr)
+#endif
+#ifndef RARRAY_LEN
+#define RARRAY_LEN(c) (RARRAY(c)->len)
+#endif
+
 #ifndef _INC_CAMERA_UTILITIES
 #define _INC_CAMERA_UTILITIES
 
