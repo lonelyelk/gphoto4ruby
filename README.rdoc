@@ -19,16 +19,11 @@ calling object methods.
 
 * On Ubuntu 8.04 it is:
 
-    sudo apt-get install gphoto2 libgphoto2-2-dev
+    sudo apt-get install libgphoto2-2-dev
     
 * On Mac OS X gphoto2 is installed through DarwinPorts
     
-* You can install GPhoto4Ruby gem from GitHub or from RubyForge. Use one of
-  the following lines depending on your preferences:
-
-    sudo gem install lonelyelk-gphoto4ruby --source http://gems.github.com
-    
-  <b>or</b>
+* You can install GPhoto4Ruby gem from GemCutter or from RubyForge:
 
     sudo gem install gphoto4ruby
   
