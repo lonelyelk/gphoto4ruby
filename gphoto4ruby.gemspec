@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["neq4 company", "Sergey Kruk"]
   s.date = %q{2009-10-16}
+  s.description = %q{GPhoto4Ruby is used to control PPTP cameras (the ones that can be controlled with gphoto2) using power of ruby.}
   s.email = %q{sergey.kruk@gmail.com}
   s.extensions = ["ext/extconf.rb"]
   s.extra_rdoc_files = [
