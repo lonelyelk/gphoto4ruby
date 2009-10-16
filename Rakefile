@@ -28,6 +28,7 @@ begin
   spec = Gem::Specification.new do |s|
     s.name = "gphoto4ruby"
     s.summary = "GPhoto4Ruby is Ruby wrapping around gphoto2 C library"
+    s.description = "GPhoto4Ruby is used to control PPTP cameras (the ones that can be controlled with gphoto2) using power of ruby."
 
     s.authors = ["neq4 company", "Sergey Kruk"]
     s.email = "sergey.kruk@gmail.com"
