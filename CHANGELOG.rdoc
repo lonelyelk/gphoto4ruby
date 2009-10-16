@@ -1,3 +1,7 @@
+== 0.3.4
+
+* Test version on compatibility with different ruby versions including 1.9
+
 == 0.3.3
 
 * Removed fake unknown type event catch when receiving file or folder created evt
