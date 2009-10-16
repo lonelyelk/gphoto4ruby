@@ -17,7 +17,7 @@ calling object methods.
 * First of all you'll need the original gphoto2 C library installed. For
   installation instructions goto http://gphoto.org.
 
-* On Ubuntu 8.04 it is:
+* On (k)ubuntu it is:
 
     sudo apt-get install libgphoto2-2-dev
     
