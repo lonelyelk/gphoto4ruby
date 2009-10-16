@@ -6,3 +6,4 @@ ext/mkmf.log
 ext/test.rb
 ext/*test.rb
 rdoc
+.rake_complete~
