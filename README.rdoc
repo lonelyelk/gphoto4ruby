@@ -21,12 +21,17 @@ calling object methods.
 
     sudo apt-get install libgphoto2-2-dev
     
-* On Mac OS X gphoto2 is installed through DarwinPorts
+* On Mac OS X gphoto2 is installed through DarwinPorts. Or you can install it
+  from source
     
 * You can install GPhoto4Ruby gem from GemCutter or from RubyForge:
 
     sudo gem install gphoto4ruby
-  
+
+* If you installed libgphoto from source you might want to use custom paths
+
+    sudo gem install -i gphoto4ruby -- --with-opt-dir=~/opt-custom-prefix
+
 * Connect your digital camera through usb, locate example.rb file and run:
 
     ruby example.rb
