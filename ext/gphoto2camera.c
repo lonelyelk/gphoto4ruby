@@ -55,6 +55,7 @@ void camera_mark(GPhoto2Camera *c) {
 void camera_free(GPhoto2Camera *c) {
     gp_result_check(gp_camera_exit(c->camera, c->context));
     gp_result_check(gp_widget_free(c->config));
+    gp_result_check(gp_camera_unref(c->camera));
     gp_result_check(gp_camera_free(c->camera));
     free(c->virtFolder);
     free(c->context);
@@ -69,6 +70,7 @@ VALUE camera_allocate(VALUE klass) {
     c->context = gp_context_new();
     gp_result_check(gp_camera_new(&(c->camera)));
     gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
+    gp_result_check(gp_camera_ref(c->camera));
     return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
 }
 
@@ -507,13 +509,8 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
  *
  */
 VALUE camera_get_config(int argc, VALUE *argv, VALUE self) {
-    int i;
-    const char *key;
     GPhoto2Camera *c;
-    CameraWidgetType widgettype;
-    VALUE arr, cfg;
-
-    cfg = rb_iv_get(self, "@configuration");
+    VALUE cfg = rb_iv_get(self, "@configuration");
 
     switch (argc) {
         case 1:
@@ -523,31 +520,8 @@ VALUE camera_get_config(int argc, VALUE *argv, VALUE self) {
             if (strcmp(rb_id2name(rb_to_id(argv[0])), "no_cache") == 0) {
                 gp_widget_free(c->config);
                 gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
-                arr = rb_funcall(cfg, rb_intern("keys"), 0);
-                for (i = 0; i < RARRAY_LEN(arr); i++) {
-                    key = RSTRING_PTR(RARRAY_PTR(arr)[i]);
-                    gp_result_check(gp_widget_get_child_by_name(c->config, key, &(c->childConfig)));
-                    gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
-                    switch (widgettype) {
-                        case GP_WIDGET_RADIO:
-                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getRadio(c->childConfig));
-                            break;
-                        case GP_WIDGET_TEXT:
-                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getText(c->childConfig));
-                            break;
-                        case GP_WIDGET_RANGE:
-                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getRange(c->childConfig));
-                            break;
-                        case GP_WIDGET_TOGGLE:
-                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getToggle(c->childConfig));
-                            break;
-                        case GP_WIDGET_DATE:
-                            rb_hash_aset(cfg, RARRAY_PTR(arr)[i], getDate(c->childConfig));
-                            break;
-                        default:
-                            break;
-                    }
-                }
+                rb_funcall(cfg, rb_intern("replace"), 1, rb_hash_new());
+                populateWithConfigs(c->config, cfg);
             } else {
                 rb_raise(rb_cGPhoto2ConfigurationError, "Unknown directive '%s'", rb_id2name(rb_to_id(argv[0])));
                 return Qnil;
