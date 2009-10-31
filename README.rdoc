@@ -30,7 +30,7 @@ calling object methods.
 
 * If you installed libgphoto from source you might want to use custom paths
 
-    sudo gem install -i gphoto4ruby -- --with-opt-dir=~/opt-custom-prefix
+    sudo gem install -i gphoto4ruby -- --with-opt-dir=/opt-custom-prefix
 
 * Connect your digital camera through usb, locate example.rb file and run:
 
