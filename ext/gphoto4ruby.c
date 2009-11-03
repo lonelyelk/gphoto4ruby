@@ -21,15 +21,35 @@
  */
 
 #include <ruby.h>
+#include <gphoto2/gphoto2-version.h>
 #include "gphoto2camera_event.h"
 #include "gphoto2camera_utilities.h"
 #include "gphoto2camera.h"
 
 void Init_gphoto4ruby() {
+    const char **v = gp_library_version(GP_VERSION_SHORT);
+    char libGPVersion[256];
+    int i;
+
+    strcpy(libGPVersion, v[0]);
+ 	  for (i = 1; v[i] != NULL; i++) {
+		    if (v[i+1] != NULL) {
+  			    strcat(libGPVersion, v[i]);
+  			    strcat(libGPVersion, ", ");
+		    } else {
+  			    strcat(libGPVersion, v[i]);
+  			}
+	  }
+
+    
     /*
      * Module contains camera class definition and some exceptions.
      */
     rb_mGPhoto2 = rb_define_module("GPhoto2");
+    /*
+     * Version of libgphoto used by gem
+     */
+    rb_define_const(rb_mGPhoto2, "LIBGPHOTO2_VERSION", rb_str_new2(libGPVersion));
     /*
      * GPhoto2::Camera object is a Ruby wrapping aroung gphoto2 C library.
      */
