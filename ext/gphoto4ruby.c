@@ -32,16 +32,15 @@ void Init_gphoto4ruby() {
     int i;
 
     strcpy(libGPVersion, v[0]);
- 	  for (i = 1; v[i] != NULL; i++) {
-		    if (v[i+1] != NULL) {
-  			    strcat(libGPVersion, v[i]);
-  			    strcat(libGPVersion, ", ");
-		    } else {
-  			    strcat(libGPVersion, v[i]);
-  			}
-	  }
+    for (i = 1; v[i] != NULL; i++) {
+        if (v[i+1] != NULL) {
+            strcat(libGPVersion, v[i]);
+            strcat(libGPVersion, ", ");
+        } else {
+            strcat(libGPVersion, v[i]);
+        }
+    }
 
-    
     /*
      * Module contains camera class definition and some exceptions.
      */

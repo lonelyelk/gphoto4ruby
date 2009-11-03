@@ -2,7 +2,7 @@ require "mkmf"
 
 lib_gp_paths = dir_config("gphoto2")
 
-if find_library("gphoto2", nil, *lib_gp_paths)
+if have_library("gphoto2")
     if RUBY_VERSION =~ /1\.9/
         $CPPFLAGS += " -DRUBY_19"
     end
