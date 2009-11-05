@@ -64,8 +64,8 @@ void camera_free(GPhoto2Camera *c) {
 
 VALUE camera_allocate(VALUE klass) {
     GPhoto2Camera *c;
-    c = (GPhoto2Camera*) malloc(sizeof(GPhoto2Camera));
-    c->virtFolder = (char*) malloc(sizeof(char)*1024);
+    c = (GPhoto2Camera*) ALLOC(GPhoto2Camera);
+    c->virtFolder = (char*) ALLOC_N(char, 1024);
     strcpy(c->virtFolder, "/");
     c->context = gp_context_new();
     gp_result_check(gp_camera_new(&(c->camera)));
@@ -1140,7 +1140,7 @@ VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
     }
     
     Data_Get_Struct(self, GPhoto2Camera, c);
-    ce = (GPhoto2CameraEvent*) malloc(sizeof(GPhoto2CameraEvent));
+    ce = (GPhoto2CameraEvent*) ALLOC(GPhoto2CameraEvent);
     
 //    RESULT_CHECK_EVENT(gp_filesystem_reset(c->camera->fs), ce);
     RESULT_CHECK_EVENT(gp_camera_wait_for_event(c->camera, to, &(ce->type), &evtData, c->context), ce);
