@@ -251,9 +251,9 @@ VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
  */
 VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     int i, count, retVal;
-    int newName = 0;
     const char *fData, *key, *val, *name;
-    char *fPath, *newNameStr, *pchNew, *pchSrc;
+    char *fPath, *pchNew, *pchSrc;
+    char  *newNameStr = NULL;
     char fName[100], cFileName[100], cFolderName[100];
     unsigned long int fSize;
     int fd;
@@ -322,9 +322,6 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
                     } 
                 } else if (strcmp(key, "new_name") == 0) {
                     newNameStr = RSTRING_PTR(rb_hash_aref(argv[0], RARRAY_PTR(arr)[i]));
-                    if (strlen(newNameStr) > 0) {
-                        newName = 1;
-                    }
                 } else if (strcmp(key, "type") == 0) {
                     hVal = rb_hash_aref(argv[0], RARRAY_PTR(arr)[i]);
                     Check_Type(hVal, T_SYMBOL);
@@ -363,14 +360,18 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     gp_file_new(&file);
     RESULT_CHECK_LIST_FILE(gp_camera_file_get(c->camera, cFolderName, cFileName, fileType, file, c->context), list, file);
     RESULT_CHECK_LIST_FILE(gp_file_get_data_and_size(file, &fData, &fSize), list, file);
-    if (newName == 1)  {
-        strcat(fName, newNameStr);
-        pchNew = strrchr(newNameStr, '.');
-        pchSrc = strrchr(cFileName, '.');
-        if (pchNew == NULL) {
-            strcat(fName, pchSrc);
-        } else if (strcmp(pchNew, pchSrc) != 0) {
-            strcat(fName, pchSrc);
+    if (newNameStr)  {
+        if (strlen(newNameStr) > 0) {
+            strcat(fName, newNameStr);
+            pchNew = strrchr(newNameStr, '.');
+            pchSrc = strrchr(cFileName, '.');
+            if (pchNew == NULL) {
+                strcat(fName, pchSrc);
+            } else if (strcmp(pchNew, pchSrc) != 0) {
+                strcat(fName, pchSrc);
+            }
+        } else {
+            strcat(fName, cFileName);
         }
     } else {
         strcat(fName, cFileName);
