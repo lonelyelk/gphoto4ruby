@@ -58,6 +58,7 @@ void camera_free(GPhoto2Camera *c) {
     gp_result_check(gp_camera_unref(c->camera));
     gp_result_check(gp_camera_free(c->camera));
     free(c->virtFolder);
+    free(c->lastName);
     free(c->context);
     free(c);
 }
@@ -66,7 +67,9 @@ VALUE camera_allocate(VALUE klass) {
     GPhoto2Camera *c;
     c = (GPhoto2Camera*) ALLOC(GPhoto2Camera);
     c->virtFolder = (char*) ALLOC_N(char, 1024);
+    c->lastName = (char*) ALLOC_N(char, 256);
     strcpy(c->virtFolder, "/");
+    c->lastName[0] = '\0';
     c->context = gp_context_new();
     gp_result_check(gp_camera_new(&(c->camera)));
     gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
@@ -219,6 +222,7 @@ VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
     gp_result_check(gp_camera_capture(c->camera, GP_CAPTURE_IMAGE, &path, c->context));
 //    printf("captured: %s/%s\n", path.folder, path.name);
     strcpy(c->virtFolder, path.folder);
+    strcpy(c->lastName, path.name);
     return self;
 }
 
@@ -270,22 +274,25 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     
     gp_list_new(&list);
     
-    strcpy(fName, "");
+    fName[0] = '\0';
     strcpy(cFolderName, c->virtFolder);
 
-    RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
-    RESULT_CHECK_LIST(gp_camera_folder_list_files(c->camera, c->virtFolder, list, c->context), list);
-    count = gp_list_count(list);
-    RESULT_CHECK_LIST(count, list);
-    if (count == 0) {
-        gp_list_free(list);
-        return self; // Nothing to save
+    if (strlen(c->lastName) > 0) {
+        strcpy(cFileName, c->lastName);
     } else {
-        count -= 1;
+        RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
+        RESULT_CHECK_LIST(gp_camera_folder_list_files(c->camera, c->virtFolder, list, c->context), list);
+        count = gp_list_count(list);
+        RESULT_CHECK_LIST(count, list);
+        if (count == 0) {
+            gp_list_free(list);
+            return self; // Nothing to save
+        } else {
+            count -= 1;
+        }
+        RESULT_CHECK_LIST(gp_list_get_name(list, count, &name), list);
+        strcpy(cFileName, name);
     }
-    RESULT_CHECK_LIST(gp_list_get_name(list, count, &name), list);
-
-    strcpy(cFileName, name);
 
     switch(argc) {
         case 0:
@@ -423,18 +430,22 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
     
     strcpy(cFolderName, c->virtFolder);
 
-    RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
-    RESULT_CHECK_LIST(gp_camera_folder_list_files(c->camera, c->virtFolder, list, c->context), list);
-    count = gp_list_count(list);
-    RESULT_CHECK_LIST(count, list);
-    if (count == 0) {
-        gp_list_free(list);
-        return self; // Nothing to delete
+    if (strlen(c->lastName) > 0) {
+        strcpy(cFileName, c->lastName);
     } else {
-        count -= 1;
+        RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
+        RESULT_CHECK_LIST(gp_camera_folder_list_files(c->camera, c->virtFolder, list, c->context), list);
+        count = gp_list_count(list);
+        RESULT_CHECK_LIST(count, list);
+        if (count == 0) {
+            gp_list_free(list);
+            return self; // Nothing to save
+        } else {
+            count -= 1;
+        }
+        RESULT_CHECK_LIST(gp_list_get_name(list, count, &name), list);
+        strcpy(cFileName, name);
     }
-    RESULT_CHECK_LIST(gp_list_get_name(list, count, &name), list);
-    strcpy(cFileName, name);
     
     switch(argc) {
         case 0:
@@ -477,8 +488,12 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
     
     if (one == 1) {
         RESULT_CHECK_LIST(gp_camera_file_delete(c->camera, cFolderName, cFileName, c->context), list);
+        if (strcmp(c->lastName, cFileName) == 0) {
+            c->lastName[0] = '\0';
+        }
     } else {
         RESULT_CHECK_LIST(gp_camera_folder_delete_all(c->camera, cFolderName, c->context), list);
+        c->lastName[0] = '\0';
     }
     RESULT_CHECK_LIST(gp_filesystem_reset(c->camera->fs), list);
     gp_list_free(list);
@@ -1151,6 +1166,7 @@ VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
         case GP_EVENT_FOLDER_ADDED:
             ce->path = (CameraFilePath*)evtData;
             strcpy(c->virtFolder, ce->path->folder);
+            strcpy(c->lastName, ce->path->name);
             break;
         case GP_EVENT_UNKNOWN:
             break;

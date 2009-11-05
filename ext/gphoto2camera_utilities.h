@@ -47,6 +47,7 @@ typedef struct {
     GPContext *context;
     
     char *virtFolder;
+    char *lastName;
 } GPhoto2Camera;
 
 extern VALUE rb_cGPhoto2Exception;
