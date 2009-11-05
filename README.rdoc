@@ -28,9 +28,18 @@ calling object methods.
 
     sudo gem install gphoto4ruby
 
-* If you installed libgphoto from source you might want to use custom paths
+* If you installed libgphoto2 from source you might want to use custom paths
 
     sudo gem install -i gphoto4ruby -- --with-opt-dir=/opt-custom-prefix
+
+* If you have more than one version of libgphoto2 installed and you want to
+  specify which one to use:
+
+    sudo gem install -i gphoto4ruby -- --with-gphoto2-dir=/custom-prefix --with-dldflags="-Wl,-rpath,/custom-prefix/lib"
+
+  Following code will tell you, which version of libgphoto2 you use:
+
+    GPhoto2::LIBGPHOTO2_VERSION
 
 * Connect your digital camera through usb, locate example.rb file and run:
 
