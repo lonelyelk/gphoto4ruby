@@ -1,6 +1,9 @@
 == 0.4.1
 
-* Experimental fix for canon cameras to keep "capture=on" between ruby calls
+* Fix for canon cameras to keep "capture=on" between ruby calls. Though it shows
+  "capture=false" but config can be refreshed with config(:no_cache)
+* Added possibility and instructions for compiling gem against specified version
+  of libgphoto2
 
 == 0.4.0
 
