@@ -31,13 +31,4 @@ if ports.any?
     # save captured file in the current directory on hard drive and delete
     # it from camera
     cams.first.capture.save.delete
-
-    # to capture image with all attached cameras simultaneously use:
-    cams.each_index do |index|
-        if index < cams.length - 1
-            fork {cams[index].capture; exit!}
-        else
-            cams[index].capture
-        end
-    end
 end
