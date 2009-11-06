@@ -48,6 +48,11 @@ calling object methods.
 * <b>NOTE!</b> On Mac OS X there is a process you need to kill before using
   gphoto2. You can find more information on this at http://gphoto.org
 
+* <b>NOTE!</b> For unknown reason after upgrade to Kubuntu 9.10 Canon EOS 450D
+  stopped capturing images. It just hangs in infinit loop. Both with my gem and
+  with command line gphoto2 tool. Even for (lib)gphoto2 2.4.7. You can change
+  configuration though. And with kubuntu 9.04 everything is ok.
+
 == Usage
 
 After installation of this gem rdocs are generated for you. Or you can generate
@@ -56,8 +61,8 @@ it manually with:
   rake rdoc
 
 Ruby file <b>example.rb</b> is installed along with this gem. All examples are
-tested on Kubuntu 8.04 and Mac OS X 10.4.11 with digital camera Nikon DSC D80
-connected through usb in PTP mode.
+tested on Kubuntu 8.04-9.04 and Mac OS X 10.4.11 with digital camera Nikon DSC D80
+connected through usb in PTP mode and Canon EOS 450D.
 
 <b>example.rb:</b>
 
