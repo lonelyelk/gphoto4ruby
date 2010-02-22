@@ -20,7 +20,35 @@
  *
  */
 
+/* CAMERA TIMEOUT FUNCTIONALITY COPIED FROM libgphoto2 */
+/*
+ * Copyright © 2002 Lutz Müller <lutz@users.sourceforge.net>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful, 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details. 
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
+
+
+
 #include "gphoto2camera.h"
+
+#ifdef HAVE_PTHREAD
+    #include <time.h> 
+    #include <pthread.h>
+#endif
+
 
 VALUE rb_mGPhoto2;
 VALUE rb_cGPhoto2Camera;
@@ -48,6 +76,69 @@ VALUE rb_cGPhoto2ConfigurationError;
         rb_raise_gp_result(r);          \
     }                                   \
 }
+
+
+
+#ifdef HAVE_PTHREAD
+static void thread_cleanup_func (void *data) {
+	ThreadData *td = data;
+	free (td);
+}
+
+static void * thread_func (void *data) {
+	ThreadData *td = data;
+	time_t t, last;
+	int dummy;
+        struct timespec interval, remainder; 
+	double diff;
+
+	pthread_cleanup_push (thread_cleanup_func, td);
+
+	last = time (NULL);
+	while (1) {
+		/* Sleep first to avoid loop using all CPU */
+		t = time (NULL);
+		interval.tv_sec = td-> timeout - (t - last); 
+		interval.tv_nsec = 0;
+		pthread_setcanceltype(PTHREAD_CANCEL_ENABLE, &dummy);
+		nanosleep(*interval, *remainder);
+		pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &dummy);
+
+		t = time (NULL);
+		if (t - last > td->timeout) {
+			td->func (td->camera, NULL);
+			last = t;
+		}
+		pthread_testcancel ();
+	}
+	pthread_cleanup_pop (1);
+}
+
+static unsigned int start_timeout_func (Camera *camera, unsigned int timeout, CameraTimeoutFunc func, void __unused__ *data) {
+	pthread_t tid;
+	ThreadData *td;
+
+	td = malloc (sizeof (ThreadData));
+	if (!td)
+		return 0;
+	memset (td, 0, sizeof (ThreadData));
+	td->camera = camera;
+	td->timeout = timeout;
+	td->func = func;
+
+	pthread_create (&tid, NULL, thread_func, td);
+
+	return (tid);
+}
+
+static void stop_timeout_func (Camera __unused__ *camera, unsigned int id, void __unused__ *data) {
+	pthread_t tid = id;
+	pthread_cancel (tid);
+	pthread_join (tid, NULL);
+}
+
+#endif
+
 
 void camera_mark(GPhoto2Camera *c) {
 }
@@ -122,6 +213,12 @@ VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
     populateWithConfigs(c->config, cfgs);
     rb_iv_set(self, "@configuration", cfgs);
     rb_iv_set(self, "@configs_changed", rb_ary_new());
+
+#ifdef HAVE_PTHREAD
+    gp_camera_set_timeout_funcs (c->camera, start_timeout_func, stop_timeout_func, NULL);
+#endif
+
+
     
     return self;
 }
