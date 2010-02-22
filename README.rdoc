@@ -101,6 +101,11 @@ connected through usb in PTP mode and Canon EOS 450D.
       # it from camera
       cams.first.capture.save.delete
   end
+
+
+  On supported systems, instanciating a camera will start a thread that 
+  prevents the camera from posering off automatically.
+
 == Contact
 
 neq4 company:: http://neq4.com
