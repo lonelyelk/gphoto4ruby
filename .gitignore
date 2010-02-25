@@ -7,3 +7,4 @@ ext/test.rb
 ext/*test.rb
 rdoc
 .rake_complete~
+*.swp

@@ -272,3 +272,8 @@ void populateWithConfigs(CameraWidget *cc, VALUE hash) {
     }
 }
 
+
+VALUE rb_new_sym(char* name) {
+  return ID2SYM(rb_intern(name));
+}
+

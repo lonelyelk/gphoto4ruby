@@ -937,6 +937,76 @@ VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
 
 /*
  * call-seq:
+ *   abilities                      =>      hash
+ *
+ * Contents of the returned hash:
+ * * <b>:model</b> - a string decribing the camera model
+ * * <b>:status</b> - one of :production, :testing, :experimental or :deprecated
+ * * <b>:operations</b> - an array containing a combination of :capture_image, :capture_video, :capture_audio, :capture_preview and :config
+ *
+ * Returns the camera abilities
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   # with Canon EOS 40D
+ *   c.abilities              #=>  {:status=>:production,
+ *                                  :operations=>[:capture_image, :capture_preview, :config],
+ *                                  :model=>"Canon EOS 40D (PTP mode)"}
+ *
+ */
+VALUE camera_get_abilities(VALUE self) {
+    GPhoto2Camera *c;
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    CameraAbilities a;
+    if (gp_result_check(gp_camera_get_abilities (c->camera, &a)) >= GP_OK) {
+      VALUE abilities = rb_hash_new();
+      /* model */
+      rb_hash_aset(abilities, rb_new_sym("model"), rb_str_new2(a.model));
+
+      /* driver status */
+      switch (a.status) {
+        case GP_DRIVER_STATUS_PRODUCTION:
+          rb_hash_aset(abilities, rb_new_sym("status"), rb_new_sym("production"));
+          break;
+        case GP_DRIVER_STATUS_TESTING:
+          rb_hash_aset(abilities, rb_new_sym("status"), rb_new_sym("testing"));
+          break;
+        case GP_DRIVER_STATUS_EXPERIMENTAL:
+          rb_hash_aset(abilities, rb_new_sym("status"), rb_new_sym("experimental"));
+          break;
+        case GP_DRIVER_STATUS_DEPRECATED:
+          rb_hash_aset(abilities, rb_new_sym("status"), rb_new_sym("deprecated"));
+          break;
+      }
+
+      /* operations */
+      VALUE ops = rb_ary_new();
+      if (a.operations & GP_OPERATION_CAPTURE_IMAGE) {
+        rb_ary_push(ops, rb_new_sym("capture_image"));
+      }
+      if (a.operations & GP_OPERATION_CAPTURE_VIDEO) {
+        rb_ary_push(ops, rb_new_sym("capture_video"));
+      }
+      if (a.operations & GP_OPERATION_CAPTURE_AUDIO) {
+        rb_ary_push(ops, rb_new_sym("capture_audio"));
+      }
+      if (a.operations & GP_OPERATION_CAPTURE_PREVIEW) {
+        rb_ary_push(ops, rb_new_sym("capture_preview"));
+      }
+      if (a.operations & GP_OPERATION_CONFIG) {
+        rb_ary_push(ops, rb_new_sym("config"));
+      }
+      rb_hash_aset(abilities, rb_new_sym("operations"), ops);
+
+      return abilities;
+    } else {
+      return Qnil;
+    }
+}
+
+/*
+ * call-seq:
  *   folder                         =>      string
  *
  * Returns current camera path. When image is captured, folder changes to
