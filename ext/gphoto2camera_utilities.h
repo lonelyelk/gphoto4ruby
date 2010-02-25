@@ -48,6 +48,8 @@ typedef struct {
     
     char *virtFolder;
     char *lastName;
+
+    CameraAbilities abilities;
 } GPhoto2Camera;
 
 extern VALUE rb_cGPhoto2Exception;
@@ -70,7 +72,6 @@ VALUE setDate(VALUE self, GPhoto2Camera *c, VALUE newNum, int save);
 void saveConfigs(VALUE self, GPhoto2Camera *c);
 
 void populateWithConfigs(CameraWidget *cc, VALUE arr);
-VALUE rb_new_sym(char* name);
 
 #endif /* _INC_CAMERA_UTILITIES */
 

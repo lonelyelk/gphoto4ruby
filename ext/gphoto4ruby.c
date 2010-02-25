@@ -87,7 +87,6 @@ void Init_gphoto4ruby() {
     rb_define_method(rb_cGPhoto2Camera, "initialize", camera_initialize, -1); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "config", camera_get_config, -1); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "config_merge", camera_config_merge, 1); /* in gphoto2camera.c */
-    rb_define_method(rb_cGPhoto2Camera, "abilities", camera_get_abilities, 0); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "[]", camera_get_value, -1); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "[]=", camera_set_value, 2); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "capture", camera_capture, -1); /* in gphoto2camera.c */
@@ -104,5 +103,10 @@ void Init_gphoto4ruby() {
 
     rb_define_method(rb_cGPhoto2CameraEvent, "type", camera_event_type, 0); /* in gphoto2camera_event.c */
     rb_define_method(rb_cGPhoto2CameraEvent, "file", camera_event_file, 0); /* in gphoto2camera_event.c */
+
+    rb_define_method(rb_cGPhoto2Camera, "model_name", camera_model_name, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "has_image_capture?", camera_has_image_capture, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "has_preview?", camera_has_preview, 0); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "has_config?", camera_has_config, 0); /* in gphoto2camera.c */
 }
 

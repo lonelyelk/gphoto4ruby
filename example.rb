@@ -8,7 +8,7 @@ if ports.any?
     ports.each do |port|
         c = GPhoto2::Camera.new(port)
         puts "camera in port: " + port
-        puts 'Model: ' + c.abilities[:model]
+        puts 'Model: ' + c.model_name
         c["capture"] = true if c.config.has_key? "capture" # canon? :)
         c.config(:no_cache).each do |key, value|
             puts key + " value is: " + value.to_s

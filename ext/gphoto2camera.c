@@ -165,6 +165,7 @@ VALUE camera_allocate(VALUE klass) {
     gp_result_check(gp_camera_new(&(c->camera)));
     gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
     gp_result_check(gp_camera_ref(c->camera));
+    gp_result_check(gp_camera_get_abilities (c->camera, &((*c).abilities)));
     return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
 }
 
@@ -934,6 +935,61 @@ VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
             return Qnil;
     }
 }
+
+
+
+/*
+ * call-seq:
+ *   model_name                      =>      string
+ *
+ * Returns the model name of the camera
+ *
+ */
+VALUE camera_model_name(VALUE self) {
+  GPhoto2Camera *c;
+  Data_Get_Struct(self, GPhoto2Camera, c);
+  return rb_str_new2((*c).abilities.model);
+}
+  
+/*
+ * call-seq:
+ *   has_image_capture?                  =>      bool
+ *
+ * Returns true if the camera is capable of image capture
+ *
+ */
+VALUE camera_has_image_capture(VALUE self) {
+  GPhoto2Camera *c;
+  Data_Get_Struct(self, GPhoto2Camera, c);
+  return ((*c).abilities.operations & GP_OPERATION_CAPTURE_IMAGE) ? Qtrue : Qfalse;
+}
+
+/*
+ * call-seq:
+ *   has_preview?                  =>      bool
+ *
+ * Returns true if the camera is capable of generatig image previews
+ *
+ */
+VALUE camera_has_preview(VALUE self) {
+  GPhoto2Camera *c;
+  Data_Get_Struct(self, GPhoto2Camera, c);
+  return ((*c).abilities.operations & GP_OPERATION_CAPTURE_PREVIEW) ? Qtrue : Qfalse;
+}
+
+/*
+ * call-seq:
+ *   has_config?                  =>      bool
+ *
+ * Returns true if the camera has any configuration values
+ *
+ */
+VALUE camera_has_config(VALUE self) {
+  GPhoto2Camera *c;
+  Data_Get_Struct(self, GPhoto2Camera, c);
+  return ((*c).abilities.operations & GP_OPERATION_CONFIG) ? Qtrue : Qfalse;
+}
+
 
 /*
  * call-seq:

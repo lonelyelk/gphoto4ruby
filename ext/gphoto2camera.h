@@ -56,8 +56,6 @@ VALUE camera_config_merge(VALUE self, VALUE hash);
 VALUE camera_get_value(int argc, VALUE *argv, VALUE self);
 VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal);
 
-VALUE camera_get_abilities(VALUE self);
-
 VALUE camera_folder(VALUE self);
 VALUE camera_subfolders(VALUE self);
 VALUE camera_files(int argc, VALUE *argv, VALUE self);
@@ -67,5 +65,10 @@ VALUE camera_folder_down(VALUE self, VALUE folder);
 VALUE camera_create_folder(VALUE self, VALUE folder);
 
 VALUE camera_wait(int argc, VALUE *argv, VALUE self);
+
+VALUE camera_model_name(VALUE self);
+VALUE camera_has_image_capture(VALUE self);
+VALUE camera_has_preview(VALUE self);
+VALUE camera_has_config(VALUE self);
 
 #endif /* _INC_CAMERA */
