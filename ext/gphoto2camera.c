@@ -356,7 +356,7 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     const char *fData, *key, *val, *name;
     char *fPath, *pchNew, *pchSrc;
     char  *newNameStr = NULL;
-    char fName[100], cFileName[100], cFolderName[100];
+    char fName[100], cFileName[100], cFolderName[100], previewName[100];
     unsigned long int fSize;
     int fd;
 
@@ -470,16 +470,31 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
             strcat(fName, newNameStr);
             pchNew = strrchr(newNameStr, '.');
             pchSrc = strrchr(cFileName, '.');
+            if (fileType == GP_FILE_TYPE_PREVIEW) {
+              pchSrc = ".JPG"; /* previews are always jpeg, even if original is RAW/TIF/etc */
+            }
             if (pchNew == NULL) {
                 strcat(fName, pchSrc);
-            } else if (strcmp(pchNew, pchSrc) != 0) {
+            } else if (strcasecmp(pchNew, pchSrc) != 0) {
                 strcat(fName, pchSrc);
             }
         } else {
-            strcat(fName, cFileName);
+            pchSrc = strrchr(cFileName, '.');
+            if (fileType == GP_FILE_TYPE_PREVIEW && pchSrc) {
+              strncat(fName, cFileName, pchSrc - cFileName);
+              strcat(fName, ".JPG");
+            } else {
+              strcat(fName, cFileName);
+            }
         }
     } else {
-        strcat(fName, cFileName);
+        pchSrc = strrchr(cFileName, '.');
+        if (fileType == GP_FILE_TYPE_PREVIEW && pchSrc) {
+          strncat(fName, cFileName, pchSrc - cFileName);
+          strcat(fName, ".JPG");
+        } else {
+          strcat(fName, cFileName);
+        }
     }
     fd = open(fName, O_CREAT | O_WRONLY, 0644);
     retVal = write(fd, fData, fSize);
