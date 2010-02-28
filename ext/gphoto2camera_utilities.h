@@ -50,12 +50,14 @@ typedef struct {
     char *lastName;
 
     CameraAbilities abilities;
+    int disposed;
 } GPhoto2Camera;
 
 extern VALUE rb_cGPhoto2Exception;
 
 void rb_raise_gp_result(int retval);
 int gp_result_check(int retval);
+int check_disposed(GPhoto2Camera* c);
 
 VALUE getRadio(CameraWidget *cc);
 VALUE listRadio(CameraWidget *cc);

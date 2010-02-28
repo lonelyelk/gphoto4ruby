@@ -85,6 +85,7 @@ void Init_gphoto4ruby() {
     rb_define_alloc_func(rb_cGPhoto2Camera, camera_allocate);
     rb_define_module_function(rb_cGPhoto2Camera, "ports", camera_class_ports, 0); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "initialize", camera_initialize, -1); /* in gphoto2camera.c */
+    rb_define_method(rb_cGPhoto2Camera, "dispose", camera_dispose, 0); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "config", camera_get_config, -1); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "config_merge", camera_config_merge, 1); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "[]", camera_get_value, -1); /* in gphoto2camera.c */

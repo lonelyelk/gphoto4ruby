@@ -144,6 +144,7 @@ void camera_mark(GPhoto2Camera *c) {
 }
 
 void camera_free(GPhoto2Camera *c) {
+  if (!c->disposed) {
     gp_result_check(gp_camera_exit(c->camera, c->context));
     gp_result_check(gp_widget_free(c->config));
     gp_result_check(gp_camera_unref(c->camera));
@@ -151,7 +152,8 @@ void camera_free(GPhoto2Camera *c) {
     free(c->virtFolder);
     free(c->lastName);
     free(c->context);
-    free(c);
+  }
+  free(c);
 }
 
 VALUE camera_allocate(VALUE klass) {
@@ -162,6 +164,7 @@ VALUE camera_allocate(VALUE klass) {
     strcpy(c->virtFolder, "/");
     c->lastName[0] = '\0';
     c->context = gp_context_new();
+    c->disposed = 0;
     gp_result_check(gp_camera_new(&(c->camera)));
     gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
     gp_result_check(gp_camera_ref(c->camera));
@@ -222,6 +225,41 @@ VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
 
     
     return self;
+}
+
+
+/*
+ * call-seq:
+ *   dispose                     => nil
+ *
+ * Releases resources aquired by the Camera class so that is will be possible
+ * to connect to the camera again even before Ruby garbage collection has
+ * released the Camera from memory
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   begin
+ *     c.capture
+ *   ensure
+ *     c.dispose # if capture failed, this code may run again in the same process
+ *   end
+ *
+ */
+VALUE camera_dispose(VALUE self) {
+    GPhoto2Camera *c;
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
+    if (!c->disposed) {
+        gp_result_check(gp_camera_exit(c->camera, c->context));
+        gp_result_check(gp_widget_free(c->config));
+        gp_result_check(gp_camera_unref(c->camera));
+        gp_result_check(gp_camera_free(c->camera));
+        free(c->virtFolder);
+        free(c->lastName);
+        free(c->context);
+        c->disposed = -1;
+    }
 }
 
 /*
@@ -309,6 +347,7 @@ VALUE camera_capture(int argc, VALUE *argv, VALUE self) {
     CameraFilePath path;
 
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     if (argc == 1) {
         camera_config_merge(self, argv[0]);
@@ -369,6 +408,7 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     VALUE arr, hVal;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     gp_list_new(&list);
     
@@ -538,6 +578,7 @@ VALUE camera_delete(int argc, VALUE *argv, VALUE self) {
     VALUE arr;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     gp_list_new(&list);
     
@@ -645,6 +686,7 @@ VALUE camera_get_config(int argc, VALUE *argv, VALUE self) {
         case 1:
             Check_Type(argv[0], T_SYMBOL);
             Data_Get_Struct(self, GPhoto2Camera, c);
+            check_disposed(c);
             
             if (strcmp(rb_id2name(rb_to_id(argv[0])), "no_cache") == 0) {
                 gp_widget_free(c->config);
@@ -686,6 +728,7 @@ VALUE camera_config_merge(VALUE self, VALUE hash) {
     VALUE arr, cfgs, cfg_changed;
 
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
 
     arr = rb_funcall(hash, rb_intern("keys"), 0);
     cfgs = rb_iv_get(self, "@configuration");
@@ -790,6 +833,7 @@ VALUE camera_get_value(int argc, VALUE *argv, VALUE self) {
             dir = argv[1];
             Check_Type(dir, T_SYMBOL);
             Data_Get_Struct(self, GPhoto2Camera, c);
+            check_disposed(c);
             
             if (strcmp(rb_id2name(rb_to_id(dir)), "no_cache") == 0) {
                 gp_widget_free(c->config);
@@ -916,6 +960,7 @@ VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
     }
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
 
     gp_result_check(gp_widget_get_child_by_name(c->config, name, &(c->childConfig)));
     gp_result_check(gp_widget_get_type(c->childConfig, &widgettype));
@@ -961,9 +1006,10 @@ VALUE camera_set_value(VALUE self, VALUE str, VALUE newVal) {
  *
  */
 VALUE camera_model_name(VALUE self) {
-  GPhoto2Camera *c;
-  Data_Get_Struct(self, GPhoto2Camera, c);
-  return rb_str_new2((*c).abilities.model);
+    GPhoto2Camera *c;
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
+    return rb_str_new2((*c).abilities.model);
 }
   
 /*
@@ -974,9 +1020,10 @@ VALUE camera_model_name(VALUE self) {
  *
  */
 VALUE camera_has_image_capture(VALUE self) {
-  GPhoto2Camera *c;
-  Data_Get_Struct(self, GPhoto2Camera, c);
-  return ((*c).abilities.operations & GP_OPERATION_CAPTURE_IMAGE) ? Qtrue : Qfalse;
+    GPhoto2Camera *c;
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
+    return ((*c).abilities.operations & GP_OPERATION_CAPTURE_IMAGE) ? Qtrue : Qfalse;
 }
 
 /*
@@ -987,9 +1034,10 @@ VALUE camera_has_image_capture(VALUE self) {
  *
  */
 VALUE camera_has_preview(VALUE self) {
-  GPhoto2Camera *c;
-  Data_Get_Struct(self, GPhoto2Camera, c);
-  return ((*c).abilities.operations & GP_OPERATION_CAPTURE_PREVIEW) ? Qtrue : Qfalse;
+    GPhoto2Camera *c;
+    Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
+    return ((*c).abilities.operations & GP_OPERATION_CAPTURE_PREVIEW) ? Qtrue : Qfalse;
 }
 
 /*
@@ -1000,81 +1048,12 @@ VALUE camera_has_preview(VALUE self) {
  *
  */
 VALUE camera_has_config(VALUE self) {
-  GPhoto2Camera *c;
-  Data_Get_Struct(self, GPhoto2Camera, c);
-  return ((*c).abilities.operations & GP_OPERATION_CONFIG) ? Qtrue : Qfalse;
-}
-
-
-/*
- * call-seq:
- *   abilities                      =>      hash
- *
- * Contents of the returned hash:
- * * <b>:model</b> - a string decribing the camera model
- * * <b>:status</b> - one of :production, :testing, :experimental or :deprecated
- * * <b>:operations</b> - an array containing a combination of :capture_image, :capture_video, :capture_audio, :capture_preview and :config
- *
- * Returns the camera abilities
- *
- * Examples:
- *
- *   c = GPhoto2::Camera.new
- *   # with Canon EOS 40D
- *   c.abilities              #=>  {:status=>:production,
- *                                  :operations=>[:capture_image, :capture_preview, :config],
- *                                  :model=>"Canon EOS 40D (PTP mode)"}
- *
- */
-VALUE camera_get_abilities(VALUE self) {
     GPhoto2Camera *c;
     Data_Get_Struct(self, GPhoto2Camera, c);
-    CameraAbilities a;
-    if (gp_result_check(gp_camera_get_abilities (c->camera, &a)) >= GP_OK) {
-      VALUE abilities = rb_hash_new();
-      /* model */
-      rb_hash_aset(abilities, rb_new_sym("model"), rb_str_new2(a.model));
-
-      /* driver status */
-      switch (a.status) {
-        case GP_DRIVER_STATUS_PRODUCTION:
-          rb_hash_aset(abilities, rb_new_sym("status"), rb_new_sym("production"));
-          break;
-        case GP_DRIVER_STATUS_TESTING:
-          rb_hash_aset(abilities, rb_new_sym("status"), rb_new_sym("testing"));
-          break;
-        case GP_DRIVER_STATUS_EXPERIMENTAL:
-          rb_hash_aset(abilities, rb_new_sym("status"), rb_new_sym("experimental"));
-          break;
-        case GP_DRIVER_STATUS_DEPRECATED:
-          rb_hash_aset(abilities, rb_new_sym("status"), rb_new_sym("deprecated"));
-          break;
-      }
-
-      /* operations */
-      VALUE ops = rb_ary_new();
-      if (a.operations & GP_OPERATION_CAPTURE_IMAGE) {
-        rb_ary_push(ops, rb_new_sym("capture_image"));
-      }
-      if (a.operations & GP_OPERATION_CAPTURE_VIDEO) {
-        rb_ary_push(ops, rb_new_sym("capture_video"));
-      }
-      if (a.operations & GP_OPERATION_CAPTURE_AUDIO) {
-        rb_ary_push(ops, rb_new_sym("capture_audio"));
-      }
-      if (a.operations & GP_OPERATION_CAPTURE_PREVIEW) {
-        rb_ary_push(ops, rb_new_sym("capture_preview"));
-      }
-      if (a.operations & GP_OPERATION_CONFIG) {
-        rb_ary_push(ops, rb_new_sym("config"));
-      }
-      rb_hash_aset(abilities, rb_new_sym("operations"), ops);
-
-      return abilities;
-    } else {
-      return Qnil;
-    }
+    check_disposed(c);
+    return ((*c).abilities.operations & GP_OPERATION_CONFIG) ? Qtrue : Qfalse;
 }
+
 
 /*
  * call-seq:
@@ -1096,6 +1075,7 @@ VALUE camera_folder(VALUE self) {
     GPhoto2Camera *c;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     return rb_str_new2(c->virtFolder);
 }
@@ -1125,6 +1105,7 @@ VALUE camera_subfolders(VALUE self) {
     VALUE arr;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     gp_list_new(&list);
     
@@ -1178,6 +1159,7 @@ VALUE camera_files(int argc, VALUE *argv, VALUE self) {
     }
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     gp_list_new(&list);
     
@@ -1223,6 +1205,7 @@ VALUE camera_files_count(VALUE self) {
     CameraList *list;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     gp_list_new(&list);
     
@@ -1258,6 +1241,7 @@ VALUE camera_folder_up(VALUE self) {
     GPhoto2Camera *c;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     pch = strrchr(c->virtFolder, '/');
     if ((pch - c->virtFolder) == 0) {
@@ -1298,6 +1282,7 @@ VALUE camera_folder_down(VALUE self, VALUE folder) {
     GPhoto2Camera *c;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     gp_list_new(&list);
     
@@ -1332,6 +1317,7 @@ VALUE camera_create_folder(VALUE self, VALUE folder) {
     GPhoto2Camera *c;
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     
     name = RSTRING_PTR(folder);
     gp_result_check(gp_camera_folder_make_dir(c->camera, c->virtFolder, name, c->context));
@@ -1394,6 +1380,7 @@ VALUE camera_wait(int argc, VALUE *argv, VALUE self) {
     }
     
     Data_Get_Struct(self, GPhoto2Camera, c);
+    check_disposed(c);
     ce = (GPhoto2CameraEvent*) ALLOC(GPhoto2CameraEvent);
     
 //    RESULT_CHECK_EVENT(gp_filesystem_reset(c->camera->fs), ce);

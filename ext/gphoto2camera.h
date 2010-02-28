@@ -42,7 +42,11 @@ void camera_mark(GPhoto2Camera *c);
 void camera_free(GPhoto2Camera *c);
 VALUE camera_allocate(VALUE klass);
 
+
+
+
 VALUE camera_initialize(int argc, VALUE *argv, VALUE self);
+VALUE camera_dispose(VALUE self);
 VALUE camera_class_ports(VALUE klass);
 
 VALUE camera_capture(int argc, VALUE *argv, VALUE self);
