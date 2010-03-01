@@ -260,6 +260,7 @@ VALUE camera_dispose(VALUE self) {
         free(c->context);
         c->disposed = -1;
     }
+    return Qnil;
 }
 
 /*
@@ -395,7 +396,7 @@ VALUE camera_save(int argc, VALUE *argv, VALUE self) {
     const char *fData, *key, *val, *name;
     char *fPath, *pchNew, *pchSrc;
     char  *newNameStr = NULL;
-    char fName[100], cFileName[100], cFolderName[100], previewName[100];
+    char fName[100], cFileName[100], cFolderName[100];
     unsigned long int fSize;
     int fd;
 
