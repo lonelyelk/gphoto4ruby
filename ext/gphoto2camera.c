@@ -259,8 +259,10 @@ VALUE camera_dispose(VALUE self) {
         free(c->lastName);
         free(c->context);
         c->disposed = -1;
+        return Qtrue;
+    } else {
+        return Qfalse;
     }
-    return Qnil;
 }
 
 /*
