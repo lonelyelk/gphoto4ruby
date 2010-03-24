@@ -35,12 +35,10 @@ int gp_result_check(int retval) {
     return retval;
 }
 
-int check_disposed(GPhoto2Camera* c) {
+void check_disposed(GPhoto2Camera* c) {
   if ((*c).disposed) {
     rb_raise(rb_cGPhoto2Exception, "Camera has been disposed");
-    return -1;
   }
-  return 0;
 }
 
 

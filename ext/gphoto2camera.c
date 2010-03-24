@@ -249,7 +249,6 @@ VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
 VALUE camera_dispose(VALUE self) {
     GPhoto2Camera *c;
     Data_Get_Struct(self, GPhoto2Camera, c);
-    check_disposed(c);
     if (!c->disposed) {
         gp_result_check(gp_camera_exit(c->camera, c->context));
         gp_result_check(gp_widget_free(c->config));
