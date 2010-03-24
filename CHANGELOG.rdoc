@@ -1,3 +1,13 @@
+== 0.4.2
+
+Pulled changes from Tallak Tveide
+
+* Added pthread to keep camera alive when library is available
+* Added several question mark methods (has_config?, has_image_capture? and
+  has_preview?) based on gphoto2 camera abilities
+* Added model_name
+* Added dispose method that allows to reuse same code and reinitialize camera
+
 == 0.4.1
 
 * Fix for canon cameras to keep "capture=on" between ruby calls. Though it shows
