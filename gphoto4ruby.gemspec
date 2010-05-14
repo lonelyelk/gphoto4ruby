@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{gphoto4ruby}
-  s.version = "0.4.2"
+  s.version = "0.4.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["neq4 company", "Sergey Kruk"]
-  s.date = %q{2010-02-28}
+  s.date = %q{2010-05-14}
   s.description = %q{GPhoto4Ruby is used to control PPTP cameras (the ones that can be controlled with gphoto2) using power of ruby.}
   s.email = %q{sergey.kruk@gmail.com}
   s.extensions = ["ext/extconf.rb"]
