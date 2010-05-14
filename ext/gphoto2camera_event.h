@@ -43,5 +43,6 @@ void camera_event_free(GPhoto2CameraEvent *ce);
 
 VALUE camera_event_type(VALUE self);
 VALUE camera_event_file(VALUE self);
+VALUE camera_event_folder(VALUE self);
 
 #endif /* _INC_CAMERA_EVENT */

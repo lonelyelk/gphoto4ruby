@@ -1359,6 +1359,7 @@ VALUE camera_create_folder(VALUE self, VALUE folder) {
  *   evt.type == GPhoto2::CameraEvent::EVENT_TYPE_FILE_ADDED
  *                                  #=>     true
  *   evt.file                       #=>     "DSC_0384.JPG"
+ *   evt.folder                     #=>     "/store_00010001/DCIM/100NCD80"
  *   
  *   # do nothing
  *   c.wait(1).type                 #=>     "timeout"

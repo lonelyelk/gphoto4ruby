@@ -74,7 +74,7 @@ VALUE camera_event_type(VALUE self) {
  *   file                           =>      string or nil
  *
  * Returns file name of manually captured image. Only applies to
- * EVENT_TYPE_FILE_ADDED event.
+ * EVENT_TYPE_FILE_ADDED or EVENT_TYPE_FOLDER_ADDED event.
  *
  * Examples:
  *
@@ -94,8 +94,42 @@ VALUE camera_event_file(VALUE self) {
     
     Data_Get_Struct(self, GPhoto2CameraEvent, ce);
     
-    if (ce->type == GP_EVENT_FILE_ADDED) {
+    if ((ce->type == GP_EVENT_FILE_ADDED) ||
+        (ce->type == GP_EVENT_FOLDER_ADDED)) {
         return rb_str_new2(ce->path->name);
+    } else {
+        return Qnil;
+    }
+}
+
+/*
+ * call-seq:
+ *   folder                         =>      string or nil
+ *
+ * Returns file name of manually captured image. Only applies to
+ * EVENT_TYPE_FILE_ADDED or EVENT_TYPE_FOLDER_ADDED event.
+ *
+ * Examples:
+ *
+ *   c = GPhoto2::Camera.new
+ *   # capture the image manually
+ *   evt = c.wait
+ *   evt.type                       #=>     "file added"
+ *   evt.type == GPhoto2::CameraEvent::EVENT_TYPE_FOLDER_ADDED
+ *                                  #=>     true
+ *   evt.file                       #=>     "101NCD80"
+ *   evt.folder                     #=>     "/store_00010001/DCIM"
+ * 
+ * In example above is default behaviour for that type of event when it occurs
+ */
+VALUE camera_event_folder(VALUE self) {
+    GPhoto2CameraEvent *ce;
+    
+    Data_Get_Struct(self, GPhoto2CameraEvent, ce);
+    
+    if ((ce->type == GP_EVENT_FILE_ADDED) ||
+        (ce->type == GP_EVENT_FOLDER_ADDED)) {
+        return rb_str_new2(ce->path->folder);
     } else {
         return Qnil;
     }

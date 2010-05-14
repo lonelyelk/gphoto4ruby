@@ -104,6 +104,7 @@ void Init_gphoto4ruby() {
 
     rb_define_method(rb_cGPhoto2CameraEvent, "type", camera_event_type, 0); /* in gphoto2camera_event.c */
     rb_define_method(rb_cGPhoto2CameraEvent, "file", camera_event_file, 0); /* in gphoto2camera_event.c */
+    rb_define_method(rb_cGPhoto2CameraEvent, "folder", camera_event_folder, 0); /* in gphoto2camera_event.c */
 
     rb_define_method(rb_cGPhoto2Camera, "model_name", camera_model_name, 0); /* in gphoto2camera.c */
     rb_define_method(rb_cGPhoto2Camera, "has_image_capture?", camera_has_image_capture, 0); /* in gphoto2camera.c */
