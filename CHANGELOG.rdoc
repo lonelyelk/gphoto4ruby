@@ -1,3 +1,8 @@
+== 0.4.3
+
+* Added folder method to CameraEvent
+* File and folder methods now correctly deal with FOLDER_ADDED and FILE_ADDED events
+
 == 0.4.2
 
 Pulled changes from Tallak Tveide
