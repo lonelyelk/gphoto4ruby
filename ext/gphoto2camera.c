@@ -165,10 +165,8 @@ VALUE camera_allocate(VALUE klass) {
     c->lastName[0] = '\0';
     c->context = gp_context_new();
     c->disposed = 0;
+    c->config = 0;
     gp_result_check(gp_camera_new(&(c->camera)));
-    gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
-    gp_result_check(gp_camera_ref(c->camera));
-    gp_result_check(gp_camera_get_abilities (c->camera, &((*c).abilities)));
     return Data_Wrap_Struct(klass, camera_mark, camera_free, c);
 }
 
@@ -212,6 +210,10 @@ VALUE camera_initialize(int argc, VALUE *argv, VALUE self) {
             rb_raise(rb_eArgError, "Wrong number of arguments (%d for 0 or 1)", argc);
             return Qnil;
     }
+
+    gp_result_check(gp_camera_get_config(c->camera, &(c->config), c->context));
+    gp_result_check(gp_camera_ref(c->camera));
+    gp_result_check(gp_camera_get_abilities (c->camera, &((*c).abilities)));
     
     cfgs = rb_hash_new();
     populateWithConfigs(c->config, cfgs);
