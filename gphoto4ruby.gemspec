@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["neq4 company", "Sergey Kruk"]
-  s.date = %q{2013-01-11}
+  s.date = %q{2013-02-11}
   s.description = %q{GPhoto4Ruby is used to control PPTP cameras (the ones that can be controlled with gphoto2) using power of ruby.}
   s.email = %q{sergey.kruk@gmail.com}
   s.extensions = ["ext/extconf.rb"]
@@ -45,7 +45,7 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--main", "README.rdoc", "--charset", "UTF-8", "--webcvs", "http://github.com/lonelyelk/gphoto4ruby/tree/master", "--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubyforge_project = %q{gphoto4ruby}
-  s.rubygems_version = %q{1.3.6}
+  s.rubygems_version = %q{1.3.5}
   s.summary = %q{GPhoto4Ruby is Ruby wrapping around gphoto2 C library}
 
   if s.respond_to? :specification_version then
