@@ -1,3 +1,7 @@
+== 0.4.4
+
+* Fixed bug with ports other than default not working due to too-early initialization
+
 == 0.4.3
 
 * Added folder method to CameraEvent
