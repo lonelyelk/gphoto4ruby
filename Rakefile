@@ -2,7 +2,7 @@
 
 require "rubygems"
 require "rake"
-require "rake/rdoctask"
+require "rdoc/task"
 
 desc "Generate RDoc documentation for gphoto4ruby gem."
 
@@ -34,7 +34,7 @@ begin
     s.email = "sergey.kruk@gmail.com"
     s.homepage = "http://github.com/lonelyelk/gphoto4ruby"
     s.rubyforge_project = "gphoto4ruby"
-    
+
     s.has_rdoc = true
     s.rdoc_options << "--main" << "README.rdoc"
     s.rdoc_options << "--charset" << "UTF-8"
@@ -43,7 +43,7 @@ begin
                     "ext/gphoto2camera.c", "ext/gphoto2camera_event.c",
                     "README.rdoc", "LICENSE", "CHANGELOG.rdoc",
                     "docs/COPYING", "docs/COPYING.LESSER"]
-    
+
     s.files = %w(CHANGELOG.rdoc LICENSE README.rdoc Rakefile VERSION docs docs/COPYING docs/COPYING.LESSER example.rb ext ext/extconf.rb ext/gphoto4ruby.c ext/gphoto2camera.c ext/gphoto2camera.h ext/gphoto2camera_event.c ext/gphoto2camera_event.h ext/gphoto2camera_utilities.c ext/gphoto2camera_utilities.h)
     s.extensions = ["ext/extconf.rb"]
   end
